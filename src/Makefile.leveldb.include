@@ -23,7 +23,7 @@ LEVELDB_CPPFLAGS_INT += $(LEVELDB_TARGET_FLAGS)
 LEVELDB_CPPFLAGS_INT += -DLEVELDB_ATOMIC_PRESENT
 LEVELDB_CPPFLAGS_INT += -D__STDC_LIMIT_MACROS
 
-if TARGET_WINDOWS
+if HOST_WINDOWS
 LEVELDB_CPPFLAGS_INT += -DLEVELDB_PLATFORM_WINDOWS -DWINVER=0x0500 -D__USE_MINGW_ANSI_STDIO=1
 else
 LEVELDB_CPPFLAGS_INT += -DLEVELDB_PLATFORM_POSIX
@@ -128,7 +128,7 @@ leveldb_libleveldb_a_SOURCES += leveldb/util/logging.cc
 leveldb_libleveldb_a_SOURCES += leveldb/util/options.cc
 leveldb_libleveldb_a_SOURCES += leveldb/util/status.cc
 
-if TARGET_WINDOWS
+if HOST_WINDOWS
 leveldb_libleveldb_a_SOURCES += leveldb/util/env_win.cc
 leveldb_libleveldb_a_SOURCES += leveldb/port/port_win.cc
 else

@@ -314,7 +314,6 @@ case $host in
      #pkgconfig does more harm than good with MinGW
      use_pkgconfig=no
 
-     TARGET_OS=windows
      AC_CHECK_LIB([mingwthrd],      [main],, AC_MSG_ERROR(lib missing))
      AC_CHECK_LIB([kernel32],      [main],, AC_MSG_ERROR(lib missing))
      AC_CHECK_LIB([user32],      [main],, AC_MSG_ERROR(lib missing))
@@ -371,7 +370,6 @@ case $host in
 
      ;;
   *darwin*)
-     TARGET_OS=darwin
      LEVELDB_TARGET_FLAGS="-DOS_MACOSX"
      if  test x$cross_compiling != xyes; then
        BUILD_OS=darwin
@@ -438,7 +436,6 @@ case $host in
      OBJCXXFLAGS="$CXXFLAGS"
      ;;
    *linux*)
-     TARGET_OS=linux
      LEVELDB_TARGET_FLAGS="-DOS_LINUX"
      ;;
    *freebsd*)
@@ -548,7 +545,7 @@ else
   AC_SEARCH_LIBS([clock_gettime],[rt])
 fi
 
-if test x$TARGET_OS != xwindows; then
+if test x$HOST_OS != xwindows; then
   # All windows code is PIC, forcing it on just adds useless compile warnings
   AX_CHECK_COMPILE_FLAG([-fPIC],[PIC_FLAGS="-fPIC"])
 fi
@@ -570,7 +567,7 @@ if test x$use_hardening != xno; then
   AX_CHECK_LINK_FLAG([[-Wl,-z,relro]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -Wl,-z,relro"])
   AX_CHECK_LINK_FLAG([[-Wl,-z,now]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -Wl,-z,now"])
 
-  if test x$TARGET_OS != xwindows; then
+  if test x$HOST_OS != xwindows; then
     AX_CHECK_COMPILE_FLAG([-fPIE],[PIE_FLAGS="-fPIE"])
     AX_CHECK_LINK_FLAG([[-pie]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -pie"])
   fi
@@ -583,7 +580,7 @@ if test x$use_hardening != xno; then
 fi
 
 dnl this flag screws up non-darwin gcc even when the check fails. special-case it.
-if test x$TARGET_OS = xdarwin; then
+if test x$HOST_OS = xdarwin; then
   AX_CHECK_LINK_FLAG([[-Wl,-dead_strip]], [LDFLAGS="$LDFLAGS -Wl,-dead_strip"])
 fi
 
@@ -912,7 +909,7 @@ if test x$use_pkgconfig = xyes; then
       fi
       if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests != xnononono; then
         PKG_CHECK_MODULES([EVENT], [libevent],, [AC_MSG_ERROR(libevent not found.)])
-        if test x$TARGET_OS != xwindows; then
+        if test x$HOST_OS != xwindows; then
           PKG_CHECK_MODULES([EVENT_PTHREADS], [libevent_pthreads],, [AC_MSG_ERROR(libevent_pthreads not found.)])
         fi
       fi
@@ -938,7 +935,7 @@ else
   if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests != xnononono; then
     AC_CHECK_HEADER([event2/event.h],, AC_MSG_ERROR(libevent headers missing),)
     AC_CHECK_LIB([event],[main],EVENT_LIBS=-levent,AC_MSG_ERROR(libevent missing))
-    if test x$TARGET_OS != xwindows; then
+    if test x$HOST_OS != xwindows; then
       AC_CHECK_LIB([event_pthreads],[main],EVENT_PTHREADS_LIBS=-levent_pthreads,AC_MSG_ERROR(libevent_pthreads missing))
     fi
   fi
@@ -1096,7 +1093,7 @@ else
     fi
     AC_MSG_RESULT($use_upnp_default)
     AC_DEFINE_UNQUOTED([USE_UPNP],[$upnp_setting],[UPnP support not compiled if undefined, otherwise value (0 or 1) determines default state])
-    if test x$TARGET_OS = xwindows; then
+    if test x$HOST_OS = xwindows; then
       MINIUPNPC_CPPFLAGS="-DSTATICLIB -DMINIUPNP_STATICLIB"
     fi
   else
@@ -1166,9 +1163,9 @@ if test x$build_bitcoin_utils$build_bitcoin_libs$build_bitcoind$bitcoin_enable_q
   AC_MSG_ERROR([No targets! Please specify at least one of: --with-utils --with-libs --with-daemon --with-gui --enable-bench or --enable-tests])
 fi
 
-AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
+AM_CONDITIONAL([HOST_DARWIN], [test x$HOST_OS = xdarwin])
 AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
-AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
+AM_CONDITIONAL([HOST_WINDOWS], [test x$HOST_OS = xwindows])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
@@ -1300,7 +1297,7 @@ echo "  with upnp     = $use_upnp"
 echo "  debug enabled = $enable_debug"
 echo "  werror        = $enable_werror"
 echo 
-echo "  target os     = $TARGET_OS"
+echo "  host os       = $HOST_OS"
 echo "  build os      = $BUILD_OS"
 echo
 echo "  CC            = $CC"

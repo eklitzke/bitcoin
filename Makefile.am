@@ -148,11 +148,11 @@ $(APP_DIST_DIR)/$(OSX_APP)/Contents/MacOS/Bitcoin-Qt: $(OSX_APP_BUILT) $(OSX_PAC
 deploydir: $(APP_DIST_EXTRAS)
 endif
 
-if TARGET_DARWIN
+if HOST_DARWIN
 appbundle: $(OSX_APP_BUILT)
 deploy: $(OSX_DMG)
 endif
-if TARGET_WINDOWS
+if HOST_WINDOWS
 deploy: $(BITCOIN_WIN_INSTALLER)
 endif
 

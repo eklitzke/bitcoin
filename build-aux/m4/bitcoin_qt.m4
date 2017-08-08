@@ -132,20 +132,20 @@ AC_DEFUN([BITCOIN_QT_CONFIGURE],[
       fi
       _BITCOIN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QMinimalIntegrationPlugin)],[-lqminimal])
       AC_DEFINE(QT_QPA_PLATFORM_MINIMAL, 1, [Define this symbol if the minimal qt platform exists])
-      if test x$TARGET_OS = xwindows; then
+      if test x$HOST_OS = xwindows; then
         _BITCOIN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)],[-lqwindows])
         AC_DEFINE(QT_QPA_PLATFORM_WINDOWS, 1, [Define this symbol if the qt platform is windows])
-      elif test x$TARGET_OS = xlinux; then
+      elif test x$HOST_OS = xlinux; then
         _BITCOIN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QXcbIntegrationPlugin)],[-lqxcb -lxcb-static])
         AC_DEFINE(QT_QPA_PLATFORM_XCB, 1, [Define this symbol if the qt platform is xcb])
-      elif test x$TARGET_OS = xdarwin; then
+      elif test x$HOST_OS = xdarwin; then
         AX_CHECK_LINK_FLAG([[-framework IOKit]],[QT_LIBS="$QT_LIBS -framework IOKit"],[AC_MSG_ERROR(could not iokit framework)])
         _BITCOIN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin)],[-lqcocoa])
         AC_DEFINE(QT_QPA_PLATFORM_COCOA, 1, [Define this symbol if the qt platform is cocoa])
       fi
     fi
   else
-    if test x$TARGET_OS = xwindows; then
+    if test x$HOST_OS = xwindows; then
       AC_DEFINE(QT_STATICPLUGIN, 1, [Define this symbol if qt plugins are static])
       _BITCOIN_QT_CHECK_STATIC_PLUGINS([
          Q_IMPORT_PLUGIN(qcncodecs)
@@ -341,17 +341,17 @@ AC_DEFUN([_BITCOIN_QT_FIND_STATIC_PLUGINS],[
      : dnl
      m4_ifdef([PKG_CHECK_MODULES],[
        PKG_CHECK_MODULES([QTPLATFORM], [Qt5PlatformSupport], [QT_LIBS="$QTPLATFORM_LIBS $QT_LIBS"])
-       if test x$TARGET_OS = xlinux; then
+       if test x$HOST_OS = xlinux; then
          PKG_CHECK_MODULES([X11XCB], [x11-xcb], [QT_LIBS="$X11XCB_LIBS $QT_LIBS"])
          if ${PKG_CONFIG} --exists "Qt5Core >= 5.5" 2>/dev/null; then
            PKG_CHECK_MODULES([QTXCBQPA], [Qt5XcbQpa], [QT_LIBS="$QTXCBQPA_LIBS $QT_LIBS"])
          fi
-       elif test x$TARGET_OS = xdarwin; then
+       elif test x$HOST_OS = xdarwin; then
          PKG_CHECK_MODULES([QTPRINT], [Qt5PrintSupport], [QT_LIBS="$QTPRINT_LIBS $QT_LIBS"])
        fi
      ])
      else
-       if test x$TARGET_OS = xwindows; then
+       if test x$HOST_OS = xwindows; then
          AC_CACHE_CHECK(for Qt >= 5.6, bitcoin_cv_need_platformsupport,[AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
              [[#include <QtCore>]],[[
              #if QT_VERSION < 0x050600
@@ -469,7 +469,7 @@ AC_DEFUN([_BITCOIN_QT_FIND_LIBS_WITHOUT_PKGCONFIG],[
       LIBS="$LIBS -L$qt_lib_path"
     fi
 
-    if test x$TARGET_OS = xwindows; then
+    if test x$HOST_OS = xwindows; then
       AC_CHECK_LIB([imm32],      [main],, BITCOIN_QT_FAIL(libimm32 not found))
     fi
   ])
