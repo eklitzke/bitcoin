@@ -25,6 +25,7 @@ if test "x${ARFLAGS+set}" != "xset"; then
   ARFLAGS="cr"
 fi
 
+AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
 AH_TOP([#ifndef BITCOIN_CONFIG_H])
