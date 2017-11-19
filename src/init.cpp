@@ -1373,7 +1373,18 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // ********************************************************* Step 7: load block chain
 
-    fReindex = gArgs.GetBoolArg("-reindex", false);
+    // Prefer the -reindex flag, if it's unset check for a .reindex file in the
+    // data directory.
+    if (gArgs.IsArgSet("-reindex"))
+      fReindex = gArgs.GetBoolArg("-reindex", false);
+    else {
+      fs::path reindexFile = GetDataDir() / ".reindex";
+      if (fs::exists(reindexFile)) {
+        fReindex = true;
+        fs::remove(reindexFile);
+      }
+    }
+
     bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
 
     // cache size calculations
