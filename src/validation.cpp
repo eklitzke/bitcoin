@@ -351,7 +351,7 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp, bool 
 
     CBlockIndex* tip = chainActive.Tip();
     assert(tip != nullptr);
-    
+
     CBlockIndex index;
     index.pprev = tip;
     // CheckSequenceLocks() uses chainActive.Height()+1 to evaluate
@@ -2134,6 +2134,8 @@ static void DoWarning(const std::string& strWarning)
     }
 }
 
+#define QUIT_WHEN_SYNCED 1
+
 /** Check warning conditions and do some notifications on new chain tip set. */
 void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainParams) {
     // New best block
@@ -2175,11 +2177,18 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
             DoWarning(strWarning);
         }
     }
+    const double progress = GuessVerificationProgress(chainParams.TxData(), pindexNew);
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__,
       pindexNew->GetBlockHash().ToString(), pindexNew->nHeight, pindexNew->nVersion,
       log(pindexNew->nChainWork.getdouble())/log(2.0), (unsigned long)pindexNew->nChainTx,
       DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexNew->GetBlockTime()),
-      GuessVerificationProgress(chainParams.TxData(), pindexNew), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+      progress, pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+#if QUIT_WHEN_SYNCED
+    if (progress > 0.999) {
+        LogPrintf("%s: reached sync point with QUIT_WHEN_SYNCED, exiting", __func__);
+        StartShutdown();
+    }
+#endif
     if (!warningMessages.empty())
         LogPrintf(" warning='%s'", boost::algorithm::join(warningMessages, ", "));
     LogPrintf("\n");

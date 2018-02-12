@@ -511,7 +511,7 @@ UniValue getmemoryinfo(const JSONRPCRequest& request)
     if (mode == "stats") {
         UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("locked", RPCLockedMemoryInfo()));
-        obj.push_back(Pair("utxo_cache", CoinsCacheInfo()));
+        obj.push_back(Pair("cache", CoinsCacheInfo()));
         return obj;
     } else if (mode == "mallocinfo") {
 #ifdef HAVE_MALLOC_INFO
