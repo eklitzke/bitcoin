@@ -203,7 +203,7 @@ class CCoinsViewCache : public CCoinsViewBacked
 protected:
     /**
      * Make mutable so that we can "fill the cache" even from Get-methods
-     * declared as "const".  
+     * declared as "const".
      */
     mutable uint256 hashBlock;
     mutable CCoinsMap cacheCoins;
@@ -280,7 +280,10 @@ public:
     //! Calculate the size of the cache (in bytes)
     size_t DynamicMemoryUsage() const;
 
-    /** 
+	//! Calculate cache hits and misses
+	std::pair<size_t, size_t> CacheHitsAndMisses() const;
+
+    /**
      * Amount of bitcoins coming in to a transaction
      * Note that lightweight clients may not know anything besides the hash of previous transactions,
      * so may not be able to calculate this.
@@ -295,6 +298,8 @@ public:
 
 private:
     CCoinsMap::iterator FetchCoin(const COutPoint &outpoint) const;
+	mutable size_t nHits;
+	mutable size_t nMisses;
 };
 
 //! Utility function to add all of a transaction's outputs to a cache.

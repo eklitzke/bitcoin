@@ -31,16 +31,23 @@ size_t CCoinsViewBacked::EstimateSize() const { return base->EstimateSize(); }
 
 SaltedOutpointHasher::SaltedOutpointHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
 
-CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), cachedCoinsUsage(0) {}
+CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), cachedCoinsUsage(0), nHits(0), nMisses(0) {}
 
 size_t CCoinsViewCache::DynamicMemoryUsage() const {
     return memusage::DynamicUsage(cacheCoins) + cachedCoinsUsage;
 }
 
+std::pair<size_t, size_t> CCoinsViewCache::CacheHitsAndMisses() const {
+	return {nHits, nMisses};
+}
+
 CCoinsMap::iterator CCoinsViewCache::FetchCoin(const COutPoint &outpoint) const {
     CCoinsMap::iterator it = cacheCoins.find(outpoint);
-    if (it != cacheCoins.end())
-        return it;
+    if (it != cacheCoins.end()) {
+		nHits++;
+		return it;
+    }
+    nMisses++;
     Coin tmp;
     if (!base->GetCoin(outpoint, tmp))
         return cacheCoins.end();

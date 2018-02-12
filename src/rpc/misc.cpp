@@ -448,6 +448,15 @@ static UniValue RPCLockedMemoryInfo()
     return obj;
 }
 
+static UniValue CoinsCacheInfo()
+{
+    UniValue obj(UniValue::VOBJ);
+    auto pr = pcoinsTip->CacheHitsAndMisses();
+    obj.push_back(Pair("hits", uint64_t(pr.first)));
+    obj.push_back(Pair("misses", uint64_t(pr.second)));
+    return obj;
+}
+
 #ifdef HAVE_MALLOC_INFO
 static std::string RPCMallocInfo()
 {
@@ -502,6 +511,7 @@ UniValue getmemoryinfo(const JSONRPCRequest& request)
     if (mode == "stats") {
         UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("locked", RPCLockedMemoryInfo()));
+        obj.push_back(Pair("utxo_cache", CoinsCacheInfo()));
         return obj;
     } else if (mode == "mallocinfo") {
 #ifdef HAVE_MALLOC_INFO
