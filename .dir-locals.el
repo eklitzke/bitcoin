@@ -1,0 +1,8 @@
+((nil . ((indent-tabs-mode . nil)
+         (fill-column . 80)
+         (tab-width . 4)
+         (no-clang-format . t)))
+ (c-mode . ((c-file-style . "BSD")
+            (c-basic-offset . 4)))
+ (c++-mode . ((c-file-style . "BSD")
+              (c-basic-offset . 4))))
