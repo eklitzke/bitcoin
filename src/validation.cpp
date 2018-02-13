@@ -23,6 +23,7 @@
 #include <pow.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
+#include <probes.h>
 #include <random.h>
 #include <reverse_iterator.h>
 #include <script/script.h>
@@ -2096,6 +2097,8 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
             if (!CheckDiskSpace(48 * 2 * 2 * pcoinsTip->GetCacheSize()))
                 return state.Error("out of disk space");
             // Flush the chainstate (which may refer to block index entries).
+            if (BITCOIN_FLUSHCACHE_ENABLED())
+                BITCOIN_FLUSHCACHE(cacheSize);
             if (!pcoinsTip->Flush())
                 return AbortNode(state, "Failed to write to coin database");
             nLastFlush = nNow;

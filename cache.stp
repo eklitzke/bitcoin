@@ -1,0 +1,13 @@
+#!/usr/bin/env stap
+
+global bytes_flushed, flush_count
+
+probe process("/home/evan/code/bitcoin/src/bitcoind").mark("flushcache") {
+  bytes_flushed += $arg1
+  flush_count++
+  printf("flushed %d bytes\n", $arg1)
+}
+
+probe end {
+  printf("total flushes: %d\n", flush_count)
+}

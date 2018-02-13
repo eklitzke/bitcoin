@@ -120,6 +120,12 @@ AC_ARG_ENABLE([upnp-default],
   [use_upnp_default=$enableval],
   [use_upnp_default=no])
 
+AC_ARG_WITH([dtrace],
+  [AS_HELP_STRING([--with-dtrace],
+  [enable DTRACE (default is yes if dtrace is found)])],
+  [use_dtrace=$withval],
+  [use_dtrace=auto])
+
 AC_ARG_ENABLE(tests,
     AS_HELP_STRING([--disable-tests],[do not compile tests (default is to compile)]),
     [use_tests=$enableval],
@@ -742,6 +748,31 @@ if test x$enable_wallet != xno; then
     BITCOIN_FIND_BDB48
 fi
 
+DTRACE="not found"
+DTRACE_OBJS=probes_impl.o
+enable_dtrace=no
+
+if test x$use_dtrace != xno; then
+    AC_PATH_PROG(DTRACE, [dtrace], [not found])
+    if test "$DTRACE" = "not found"; then
+        if text x$use_dtrace = xyes; then
+            AC_MSG_ERROR([dtrace command not found on \$PATH])
+        else
+            enable_dtrace=no
+        fi
+    else
+        enable_dtrace=yes
+    fi
+fi
+
+if test $enable_dtrace = yes; then
+  AM_CONDITIONAL([ENABLE_PROBES], [true])
+  AC_DEFINE(WITH_PROBES, 1,
+    [Define if you want a build that includes DTrace/Systemtap probes])
+
+  # FIXME: make this work on mac
+fi
+
 dnl Check for libminiupnpc (optional)
 if test x$use_upnp != xno; then
   AC_CHECK_HEADERS(
@@ -1263,6 +1294,10 @@ AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)
 AC_SUBST(PROTOBUF_LIBS)
 AC_SUBST(QR_LIBS)
+AC_SUBST(DTRACE)
+AC_SUBST(DFLAGS)
+AC_SUBST(DTRACE_HEADERS)
+AC_SUBST(DTRACE_OBJS)
 AC_CONFIG_FILES([Makefile src/Makefile doc/man/Makefile share/setup.nsi share/qt/Info.plist test/config.ini])
 AC_CONFIG_FILES([contrib/devtools/split-debug.sh],[chmod +x contrib/devtools/split-debug.sh])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
@@ -1333,6 +1368,7 @@ echo "  with zmq      = $use_zmq"
 echo "  with test     = $use_tests"
 echo "  with bench    = $use_bench"
 echo "  with upnp     = $use_upnp"
+echo "  with dtrace   = $enable_dtrace"
 echo "  use asm       = $use_asm"
 echo "  debug enabled = $enable_debug"
 echo "  werror        = $enable_werror"
