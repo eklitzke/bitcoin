@@ -28,6 +28,7 @@
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
+#include <probes.h>
 #include <rpc/server.h>
 #include <rpc/register.h>
 #include <rpc/safemode.h>
@@ -1225,10 +1226,14 @@ bool AppInitMain()
 
     if (!fLogTimestamps)
         LogPrintf("Startup time: %s\n", DateTimeStrFormat("%Y-%m-%d %H:%M:%S", GetTime()));
+    const std::string datadir = GetDataDir().string();
+    const std::string configpath = GetConfigFile(gArgs.GetArg("-conf", BITCOIN_CONF_FILENAME)).string();
     LogPrintf("Default data directory %s\n", GetDefaultDataDir().string());
-    LogPrintf("Using data directory %s\n", GetDataDir().string());
-    LogPrintf("Using config file %s\n", GetConfigFile(gArgs.GetArg("-conf", BITCOIN_CONF_FILENAME)).string());
+    LogPrintf("Using data directory %s\n", datadir);
+    LogPrintf("Using config file %s\n", configpath);
     LogPrintf("Using at most %i automatic connections (%i file descriptors available)\n", nMaxConnections, nFD);
+    if (PROBE_INIT_MAIN_ENABLED())
+        PROBE_INIT_MAIN(datadir, configpath);
 
     // Warn about relative -datadir path.
     if (gArgs.IsArgSet("-datadir") && !fs::path(gArgs.GetArg("-datadir", "")).is_absolute()) {
@@ -1503,6 +1508,7 @@ bool AppInitMain()
 
                 // The on-disk coinsdb is now in a good state, create the cache
                 pcoinsTip.reset(new CCoinsViewCache(pcoinscatcher.get()));
+                pcoinsTip->EnableProbing();
 
                 bool is_coinsview_empty = fReset || fReindexChainState || pcoinsTip->GetBestBlock().IsNull();
                 if (!is_coinsview_empty) {

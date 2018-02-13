@@ -23,6 +23,7 @@
 #include <pow.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
+#include <probes.h>
 #include <random.h>
 #include <reverse_iterator.h>
 #include <script/script.h>
@@ -351,7 +352,7 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp, bool 
 
     CBlockIndex* tip = chainActive.Tip();
     assert(tip != nullptr);
-    
+
     CBlockIndex index;
     index.pprev = tip;
     // CheckSequenceLocks() uses chainActive.Height()+1 to evaluate
@@ -1120,6 +1121,8 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
         LOCK(cs_main);
         blockPos = pindex->GetBlockPos();
     }
+    if (PROBE_READ_BLOCK_FROM_DISK_ENABLED())
+        PROBE_READ_BLOCK_FROM_DISK(pindex->nHeight, pindex->nFile);
 
     if (!ReadBlockFromDisk(block, blockPos, consensusParams))
         return false;
@@ -1163,6 +1166,8 @@ bool IsInitialBlockDownload()
         return true;
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     latchToFalse.store(true, std::memory_order_relaxed);
+    if (PROBE_FINISH_IBD_ENABLED())
+        PROBE_FINISH_IBD();
     return false;
 }
 
@@ -2226,11 +2231,20 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
             DoWarning(strWarning);
         }
     }
+    const double progress = GuessVerificationProgress(chainParams.TxData(), pindexNew);
+    const std::string block_hash = pindexNew->GetBlockHash().ToString();
+    if (PROBE_UPDATE_TIP_ENABLED()) {
+        PROBE_UPDATE_TIP(block_hash,
+                         pindexNew->nHeight,
+                         pcoinsTip->GetCacheSize(),
+                         pcoinsTip->DynamicMemoryUsage(),
+                         static_cast<size_t>(progress * 1000000));
+    }
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__,
-      pindexNew->GetBlockHash().ToString(), pindexNew->nHeight, pindexNew->nVersion,
+      block_hash, pindexNew->nHeight, pindexNew->nVersion,
       log(pindexNew->nChainWork.getdouble())/log(2.0), (unsigned long)pindexNew->nChainTx,
       DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexNew->GetBlockTime()),
-      GuessVerificationProgress(chainParams.TxData(), pindexNew), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+      progress, pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
     if (!warningMessages.empty())
         LogPrintf(" warning='%s'", boost::algorithm::join(warningMessages, ", "));
     LogPrintf("\n");

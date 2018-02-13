@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <coins.h>
+#include <probes.h>
 
 #include <consensus/consensus.h>
 #include <random.h>
@@ -31,7 +32,7 @@ size_t CCoinsViewBacked::EstimateSize() const { return base->EstimateSize(); }
 
 SaltedOutpointHasher::SaltedOutpointHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
 
-CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), cachedCoinsUsage(0) {}
+CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), cachedCoinsUsage(0), m_enable_probing(false) {}
 
 size_t CCoinsViewCache::DynamicMemoryUsage() const {
     return memusage::DynamicUsage(cacheCoins) + cachedCoinsUsage;
@@ -39,8 +40,13 @@ size_t CCoinsViewCache::DynamicMemoryUsage() const {
 
 CCoinsMap::iterator CCoinsViewCache::FetchCoin(const COutPoint &outpoint) const {
     CCoinsMap::iterator it = cacheCoins.find(outpoint);
-    if (it != cacheCoins.end())
+    if (it != cacheCoins.end()) {
+        if (PROBE_CACHE_HIT_ENABLED() && m_enable_probing)
+            PROBE_CACHE_HIT();
         return it;
+    }
+    if (PROBE_CACHE_MISS_ENABLED() && m_enable_probing)
+        PROBE_CACHE_MISS();
     Coin tmp;
     if (!base->GetCoin(outpoint, tmp))
         return cacheCoins.end();
@@ -201,6 +207,8 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn
 }
 
 bool CCoinsViewCache::Flush() {
+    if (PROBE_CACHE_FLUSH_ENABLED() && m_enable_probing)
+        PROBE_CACHE_FLUSH(cacheCoins.size(), DynamicMemoryUsage());
     bool fOk = base->BatchWrite(cacheCoins, hashBlock);
     cacheCoins.clear();
     cachedCoinsUsage = 0;

@@ -132,7 +132,6 @@ libqrencode (optional) can be installed with:
 Once these are installed, they will be found by configure and a bitcoin-qt executable will be
 built by default.
 
-
 ### Fedora
 
 #### Dependency Build Instructions
@@ -254,6 +253,53 @@ In this case there is no dependency on Berkeley DB 4.8.
 
 Mining is also possible in disable-wallet mode, but only using the `getblocktemplate` RPC
 call not `getwork`.
+
+SystemTap Probes
+--------------------------
+
+Linux hosts can build Bitcoin with [SystemTap
+probes](https://sourceware.org/systemtap/wiki). This is generally only useful
+for people who want to actually do development on Bitcoin itself, and is not
+recommended for regular end users.
+
+SystemTap support will be enabled automatically if you have a `dtrace`
+executable and a `sys/sdt.h` header available. You can also force disable
+SystemTap support using the `--disable-systemtap` configure option.
+
+To install the SystemTap prerequisites on Debian:
+
+    sudo apt-get install systemtap systemtap-sdt-dev
+
+To install the SystemTap prerequisites on Fedora:
+
+    sudo dnf install systemtap-sdt-devel
+
+You can check if an executable has SystemTap probes by looking for a
+`.note.stapsdt` ELF note. For example, `readelf` will report something similar
+to the following if SystemTap probes are enabled:
+
+```
+$ readelf -n ./src/bitcoind
+
+... other note sections omitted...
+
+Displaying notes found in: .note.stapsdt
+  Owner                 Data size	Description
+  stapsdt              0x0000002c	NT_STAPSDT (SystemTap probe descriptors)
+    Provider: bitcoin
+    Name: finish_ibd
+    Location: 0x00000000001a2a32, Base: 0x000000000040d630, Semaphore: 0x000000000069907e
+    Arguments:
+  stapsdt              0x00000049	NT_STAPSDT (SystemTap probe descriptors)
+    Provider: bitcoin
+    Name: update_tip
+    Location: 0x00000000001ba2b7, Base: 0x000000000040d630, Semaphore: 0x0000000000699082
+    Arguments: -4@%ebp 4@%r12d 8@%rax 8@%rdx
+  ...
+```
+
+For more detailed information about working with Bitcoin's SystemTap probes,
+refer to the Bitcoin [SystemTap docs](systemtap.md).
 
 Additional Configure Flags
 --------------------------
