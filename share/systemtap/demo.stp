@@ -1,0 +1,33 @@
+global start_time
+
+// Return relative time since the process was attached.
+function timestr:string () {
+  t = gettimeofday_us() - start_time
+  secs = t / 1000000
+  micros = t % 1000000
+  return sprintf("%lu.%06lu", secs, micros)
+}
+
+// Run once when SystemTap attaches to the process.
+probe begin {
+  start_time = gettimeofday_us()
+  printf("%s Attached to bitcoind process\n", timestr())
+}
+
+// Executed when AppInitMain() starts.
+probe bitcoin.init_main {
+  printf("%s AppInitMain with datadir=%s, config=%s\n", timestr(), datadir, config);
+}
+
+// Executed by UpdateTip() for each new block.
+probe bitcoin.update_tip {
+  comment = ""
+  if (height == 0)
+    comment = " (genesis)"
+  printf("%s UpdateTip: new block %s at height %d%s\n", timestr(), block, height, comment)
+}
+
+// Executed when IsInitialBlockDownload() latches to false.
+probe bitcoin.finish_ibd {
+  printf("%s IBD finished\n", timestr())
+}

@@ -1,0 +1,137 @@
+// systemtap script for profiling bitcoind
+
+global start_time, targetpid
+probe begin {
+  start_time = gettimeofday_us()
+  targetpid = target()
+}
+
+@define checkpid %(if (pid() != targetpid) next %)
+@define checkreturn %(if ($return < 0) next %)
+
+// information about vfs timing
+global vfs
+probe vfs.*.return {
+  @checkpid
+  vfs[sprintf("%s:count", name)]++
+  vfs[sprintf("%s:time", name)] += gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+// information about bio ("block io") requests
+global bio
+probe ioblock.*, ioblock_trace.* {
+  @checkpid
+  bio[sprintf("%s:count", name)]++
+}
+
+function show_time(reason: string) {
+  t = gettimeofday_us()
+  secs = t / 1000000
+  micros = t % 1000000
+
+  elapsed = t - start_time
+  elapsed_secs = elapsed / 1000000
+  elapsed_micros = elapsed % 1000000
+
+  printf("time t=%lu.%06lu elapsed=%lu.%06lu reason=%s\n", secs, micros, elapsed_secs, elapsed_micros, reason)
+}
+
+// record when cache flushes start
+probe bitcoin.cache_flush {
+  show_time("flush")
+  printf("flush coins:count=%lu coins:bytes=%lu\n", coins, bytes)
+  println()
+}
+
+// record CCoinsViewCache hits
+global hits
+probe bitcoin.cache_hit {
+  hits++
+}
+
+// record CCoinsViewCache misses
+global misses
+probe bitcoin.cache_miss {
+  misses++
+}
+
+function show_cache() {
+  printf("cache hits=%lu misses=%lu\n", hits, misses)
+  hits=0
+  misses=0
+}
+
+global tip
+probe bitcoin.update_tip {
+  tip["height"] = height
+  tip["utxo:count"] = cache_size
+  tip["utxo:size"] = cache_bytes
+  tip["progress"] = progress
+}
+
+global leveldb
+probe bitcoin.function("leveldb::DBImpl::Get").return {
+  leveldb["get:count"]++
+  leveldb["get:time"] += gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe bitcoin.function("leveldb::DBImpl::Put").return {
+  leveldb["put:count"]++
+  leveldb["put:time"] += gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe bitcoin.function("leveldb::DBImpl::Write").return {
+  leveldb["write:count"]++
+  leveldb["write:time"] += gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe bitcoin.function("leveldb::DBImpl::Delete").return {
+  leveldb["delete:count"]++
+  leveldb["delete:time"] += gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+function show_mem() {
+  page_size = mem_page_size()
+  vsz = proc_mem_size(targetpid) * page_size
+  rss = proc_mem_rss(targetpid) * page_size
+  data = proc_mem_data(targetpid) * page_size
+  printf("memory virtual:bytes=%lu rss:bytes=%lu data:bytes=%lu\n", vsz, rss, data)
+}
+
+@define showmap(event, obj) %(
+  print(@event)
+  foreach([key] in @obj) {
+    printf(" %s=%d", key, @obj[key])
+  }
+  println()
+  delete @obj
+%)
+
+function show_all() {
+  // print the timestamp for these events
+  show_time("timer")
+
+  // now show the events
+  @showmap("bio", bio)
+  @showmap("vfs", vfs)
+  @showmap("leveldb", leveldb)
+  show_cache()
+  show_mem()
+
+  height = tip["height"]
+  progress = tip["progress"]
+  @showmap("updatetip", tip)
+  tip["height"] = height
+  tip["progress"] = progress
+
+  println()
+}
+
+probe begin, timer.sec(10) {
+  show_all()
+}
+
+probe bitcoin.finish_ibd {
+  printf("finish elapsed:time=%d\n", gettimeofday_us() - start_time)
+  exit()
+}

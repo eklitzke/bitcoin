@@ -177,6 +177,25 @@ BITCOIN_CORE_H = \
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h
 
+if ENABLE_SYSTEMTAP
+probes.h: probes.d
+	$(AM_V_GEN) $(DTRACE) -C -h -s $< -o $@
+	@sed 's/BITCOIN_/PROBE_/' $@ > $@.tmp
+	@mv $@.tmp $@
+
+LIBBITCOIN_PROBES=probes.o
+probes.o: probes.d
+	@$(DTRACE) -C -G -s $< -o $@
+
+else
+probes.h: probes.d
+	$(AM_V_GEN) $(abs_top_srcdir)/share/genprobes.sh "$(abs_top_builddir)/src/probes.d" $@
+
+LIBBITCOIN_PROBES=
+endif
+
+BUILT_SOURCES = probes.h
+BITCOIN_CORE_H += probes.h
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -392,6 +411,7 @@ bitcoind_LDADD = \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_COMMON) \
+  $(LIBBITCOIN_PROBES) \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_ZMQ) \
@@ -436,6 +456,7 @@ endif
 bitcoin_tx_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_COMMON) \
+  $(LIBBITCOIN_PROBES) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CONSENSUS) \
   $(LIBBITCOIN_CRYPTO) \
@@ -482,6 +503,7 @@ CLEANFILES += wallet/*.gcda wallet/*.gcno
 CLEANFILES += wallet/test/*.gcda wallet/test/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
 CLEANFILES += obj/build.h
+CLEANFILES += probes.h
 
 EXTRA_DIST = $(CTAES_DIST)
 
