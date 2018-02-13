@@ -742,6 +742,62 @@ if test x$enable_wallet != xno; then
     BITCOIN_FIND_BDB48
 fi
 
+dnl Below are a series of checks for SystemTap support. On Linux the default is
+dnl enable_systemtap=auto. In this mode we will enable SystemTap probes if
+dnl dtrace(1) is found *and* sys/sdt.h headers are available. If we're in "auto"
+dnl mode for enable_systemtap then we can just warn if either are not found, if
+dnl we're in "yes" mode for enable_systemtap we need to fail with an error.
+dnl Non-Linux hosts will have enable_systemtap=no by default.
+
+case "${host_os}" in
+  linux*)
+    try_systemtap=auto
+    ;;
+  *)
+    try_systemtap=no
+    ;;
+esac
+
+AC_MSG_CHECKING([whether to include SystemTap tracing support])
+AC_ARG_ENABLE([systemtap],
+  [AS_HELP_STRING([--enable-systemtap],
+  [Enable inclusion of SystemTap trace support])],
+  [enable_systemtap=$enableval],
+  [enable_systemtap=$try_systemtap])
+AC_MSG_RESULT($enable_systemtap)
+
+dnl Check for dtrace(1)
+if test x$enable_systemtap != xno; then
+  AC_CHECK_PROGS([DTRACE], [dtrace])
+  if test -z "$DTRACE"; then
+    if test x$enable_systemtap = xauto; then
+      AC_MSG_WARN([dtrace executable not found, SystemTap probes will be disabled])
+      enable_systemtap=no
+    else
+      AC_MSG_ERROR([dtrace executable required for SystemTap not found])
+    fi
+  fi
+fi
+
+dnl Check for sys/sdt.h
+if test x$enable_systemtap != xno; then
+  AC_CHECK_HEADER([sys/sdt.h], [sdt_h_found=yes], [sdt_h_found=no])
+  if test x$sdt_h_found = xno; then
+    if test x$enable_systemtap = xauto; then
+      AC_MSG_WARN([sys/sdt.h header not found, SystemTap probes will be disabled])
+      enable_systemtap=no
+    else
+      AC_MSG_ERROR([sys/sdt.header needed by SystemTap not found])
+    fi
+  elif test x$enable_systemtap = xauto; then
+    dnl If we had enable_systemtap=auto, then by this point we found dtrace and
+    dnl sys/sdt.h, so set enable_sysemtap=yes.
+    enable_systemtap=yes
+  fi
+fi
+
+AM_CONDITIONAL([ENABLE_SYSTEMTAP], [test x$enable_systemtap = xyes])
+
 dnl Check for libminiupnpc (optional)
 if test x$use_upnp != xno; then
   AC_CHECK_HEADERS(
@@ -1263,6 +1319,7 @@ AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)
 AC_SUBST(PROTOBUF_LIBS)
 AC_SUBST(QR_LIBS)
+AC_SUBST(DTRACE)
 AC_CONFIG_FILES([Makefile src/Makefile doc/man/Makefile share/setup.nsi share/qt/Info.plist test/config.ini])
 AC_CONFIG_FILES([contrib/devtools/split-debug.sh],[chmod +x contrib/devtools/split-debug.sh])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
@@ -1323,28 +1380,29 @@ esac
 
 echo
 echo "Options used to compile and link:"
-echo "  with wallet   = $enable_wallet"
-echo "  with gui / qt = $bitcoin_enable_qt"
+echo "  with wallet    = $enable_wallet"
+echo "  with gui / qt  = $bitcoin_enable_qt"
 if test x$bitcoin_enable_qt != xno; then
-    echo "    qt version  = $bitcoin_qt_got_major_vers"
-    echo "    with qr     = $use_qr"
+    echo "    qt version   = $bitcoin_qt_got_major_vers"
+    echo "    with qr      = $use_qr"
 fi
-echo "  with zmq      = $use_zmq"
-echo "  with test     = $use_tests"
-echo "  with bench    = $use_bench"
-echo "  with upnp     = $use_upnp"
-echo "  use asm       = $use_asm"
-echo "  debug enabled = $enable_debug"
-echo "  werror        = $enable_werror"
+echo "  with zmq       = $use_zmq"
+echo "  with test      = $use_tests"
+echo "  with bench     = $use_bench"
+echo "  with upnp      = $use_upnp"
+echo "  with systemtap = $enable_systemtap"
+echo "  use asm        = $use_asm"
+echo "  debug enabled  = $enable_debug"
+echo "  werror         = $enable_werror"
 echo
-echo "  target os     = $TARGET_OS"
-echo "  build os      = $BUILD_OS"
+echo "  target os      = $TARGET_OS"
+echo "  build os       = $BUILD_OS"
 echo
-echo "  CC            = $CC"
-echo "  CFLAGS        = $CFLAGS"
-echo "  CPPFLAGS      = $CPPFLAGS"
-echo "  CXX           = $CXX"
-echo "  CXXFLAGS      = $CXXFLAGS"
-echo "  LDFLAGS       = $LDFLAGS"
-echo "  ARFLAGS       = $ARFLAGS"
+echo "  CC             = $CC"
+echo "  CFLAGS         = $CFLAGS"
+echo "  CPPFLAGS       = $CPPFLAGS"
+echo "  CXX            = $CXX"
+echo "  CXXFLAGS       = $CXXFLAGS"
+echo "  LDFLAGS        = $LDFLAGS"
+echo "  ARFLAGS        = $ARFLAGS"
 echo
