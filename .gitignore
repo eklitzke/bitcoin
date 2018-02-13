@@ -33,6 +33,7 @@ libtool
 src/config/bitcoin-config.h
 src/config/bitcoin-config.h.in
 src/config/stamp-h1
+src/probes.h
 share/setup.nsi
 share/qt/Info.plist
 
