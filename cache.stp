@@ -1,42 +1,101 @@
-#!/usr/bin/env stap
+// global vars
+global bytes_flushed, flush_count, hits, misses
 
-# global vars
-global bytes_flushed, flush_count, hits, misses, start
+function show_time() {
+  t = gettimeofday_ns()
+  secs = t / 1000000000
+  micros = t % 1000000000
+  printf("%d.%09d ", secs, micros)
+}
 
-# record when cache flushes start
-probe process("/home/evan/code/bitcoin/src/bitcoind").mark("cache__flush_start") {
-  # track start time, bytes flushed
-  start = gettimeofday_us()
+probe nd_syscall.fdatasync {
+  show_time()
+  printf("syscall_begin=fdatasync\n")
+}
+
+probe nd_syscall.fdatasync.return {
+  show_time()
+  printf("syscall_end=fdatasync\n")
+}
+
+probe nd_syscall.fsync {
+  show_time()
+  printf("syscall_begin=fsync\n")
+}
+
+probe nd_syscall.fsync.return {
+  show_time()
+  printf("syscall_end=fsync\n")
+}
+
+probe nd_syscall.msync {
+  show_time()
+  printf("syscall_begin=msync\n")
+}
+
+probe nd_syscall.msync.return {
+  show_time()
+  printf("syscall_end=msync\n")
+}
+
+probe nd_syscall.sync {
+  show_time()
+  printf("syscall_begin=sync\n")
+}
+
+probe nd_syscall.sync.return {
+  show_time()
+  printf("syscall_end=sync\n")
+}
+
+probe nd_syscall.sync_file_range {
+  show_time()
+  printf("syscall_begin=sync_file_range\n")
+}
+
+probe nd_syscall.sync_file_range.return {
+  show_time()
+  printf("syscall_end=sync_file_range\n")
+}
+
+probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
+}
+
+// record when cache flushes start
+probe bitcoind.mark("cache__flush_start") {
   bytes_flushed += $arg1
   flush_count++
-  printf("> flush %d bytes\n", $arg1)
+  show_time()
+  printf("flush_start size=%d\n", $arg1)
 }
 
-# record when cache flushes end
-probe process("/home/evan/code/bitcoin/src/bitcoind").mark("cache__flush_end") {
-  # track elapsed time
-  t = gettimeofday_us() - start
-  printf("< flush (%d micros)\n", t)
+// record when cache flushes end
+probe bitcoind.mark("cache__flush_end") {
+  show_time()
+  printf("flush_end\n")
 }
 
-# record cache hits
-probe process("/home/evan/code/bitcoin/src/bitcoind").mark("cache__hit") {
+// record cache hits
+probe bitcoind.mark("cache__hit") {
   hits++
 }
 
-# record cache misses
-probe process("/home/evan/code/bitcoin/src/bitcoind").mark("cache__miss") {
+// record cache misses
+probe bitcoind.mark("cache__miss") {
   misses++
 }
 
-# print cache hit/miss info
-probe timer.sec(10) {
-  if (hits || misses)
-    printf("hit rate: %d / %d\n", hits, hits + misses)
+// print cache hit/miss info
+probe timer.sec(1) {
+  if (hits || misses) {
+    show_time()
+    printf("hits=%d misses=%d\n", hits, hits + misses)
+  }
 }
 
 probe begin {
-  printf("Monitoring for coin flushes, please stand by...\n")
+  if (0)
+    printf("Monitoring for coin flushes, please stand by...\n")
 }
 
 probe end {
