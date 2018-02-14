@@ -11,14 +11,20 @@
 // This file is not checked in: it's generated as part of the build process. For
 // the gory details, see configure.ac and src/Makefile.am
 #include <probes_impl.h>
+
 #else
-// Nothing should be enabled
-#define BITCOIN_CACHE_FLUSH_START_ENABLED() 0
-#define BITCOIN_CACHE_FLUSH_END_ENABLED() 0
-#define BITCOIN_CACHE_HIT_ENABLED() 0
-#define BITCOIN_CACHE_MISS_ENABLED() 0
-#define BITCOIN_FINISH_IBD_ENABLED() 0
-#define BITCOIN_CDB_WRITE_BATCH_ENABLED() 0
+
+// Create an "enabled" macro that always returns false.
+#define DEFINE_PROBE_ENABLED(name)\
+    inline int BITCOIN_ ## name ## _ENABLED(void) { return 0; }
+
+// Nothing should be enabled.
+DEFINE_PROBE_ENABLED(CACHE_FLUSH_START)
+DEFINE_PROBE_ENABLED(CACHE_FLUSH_END)
+DEFINE_PROBE_ENABLED(CACHE_HIT)
+DEFINE_PROBE_ENABLED(CACHE_MISS)
+DEFINE_PROBE_ENABLED(FINISH_IBD)
+DEFINE_PROBE_ENABLED(CDB_WRITE_BATCH)
 
 // And these should be no-ops.
 inline void BITCOIN_CACHE_FLUSH_START(size_t) {}
@@ -26,6 +32,6 @@ inline void BITCOIN_CACHE_FLUSH_END(void) {}
 inline void BITCOIN_CACHE_HIT(void) {}
 inline void BITCOIN_CACHE_MISS(void) {}
 inline void BITCOIN_FINISH_IBD(void) {}
-inline void BITCOIN_CDB_WRITE_BATCH_ENABLED(size_t, bool) {}
+inline void BITCOIN_CDB_WRITE_BATCH(size_t, bool) {}
 #endif // WITH_PROBES
 #endif // BITCOIN_PROBES_H
