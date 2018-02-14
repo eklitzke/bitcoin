@@ -1,5 +1,5 @@
 // global vars
-global bytes_flushed, flush_count, hits, misses
+global bytes_flushed, flush_count, hits, misses, dbgets
 
 function show_time() {
   t = gettimeofday_ns()
@@ -89,17 +89,21 @@ probe bitcoind.mark("cache__miss") {
   misses++
 }
 
+probe bitcoind.mark("finish__ibd") {
+  show_time()
+  printf("finish_ibd\n")
+}
+
+probe bitcoind.function("CCoinsViewDB::GetCoin") {
+  dbgets++
+}
+
 // print cache hit/miss info
 probe timer.sec(1) {
   if (hits || misses) {
     show_time()
-    printf("hits=%d misses=%d\n", hits, hits + misses)
+    printf("hits=%d misses=%d dbgets=%d\n", hits, misses, dbgets)
   }
-}
-
-probe begin {
-  if (0)
-    printf("Monitoring for coin flushes, please stand by...\n")
 }
 
 probe end {
