@@ -6,7 +6,7 @@ provider bitcoin {
   probe cache__hit();
   probe cache__miss();
   probe finish__ibd();
-  probe cdb__write__batch(bool);
+  probe cdb__write__batch(size_t, bool);
 };
 
 #pragma D attributes Evolving/Evolving/Common provider bitcoin provider

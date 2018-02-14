@@ -21,11 +21,11 @@
 #define BITCOIN_CDB_WRITE_BATCH_ENABLED() 0
 
 // And these should be no-ops.
-inline void BITCOIN_CACHE_FLUSH_START(size_t arg0) {}
+inline void BITCOIN_CACHE_FLUSH_START(size_t) {}
 inline void BITCOIN_CACHE_FLUSH_END(void) {}
 inline void BITCOIN_CACHE_HIT(void) {}
 inline void BITCOIN_CACHE_MISS(void) {}
 inline void BITCOIN_FINISH_IBD(void) {}
-inline void BITCOIN_CDB_WRITE_BATCH_ENABLED(bool arg0) {}
+inline void BITCOIN_CDB_WRITE_BATCH_ENABLED(size_t, bool) {}
 #endif // WITH_PROBES
 #endif // BITCOIN_PROBES_H
