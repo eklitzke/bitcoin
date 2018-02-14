@@ -8,58 +8,17 @@ function show_time() {
   printf("%d.%09d ", secs, micros)
 }
 
-function show_begin(name: string) {
+function show_syscall(tag: string, name: string) {
   show_time()
-  printf("begin syscall=%s\n", name)
+  printf("%s syscall=%s, pid=%d\n", tag, name, pid())
 }
 
-probe nd_syscall.fdatasync {
-  show_begin(name)
+probe nd_syscall.fdatasync, nd_syscall.fsync, nd_syscall.msync, nd_syscall.sync_file_range, nd_syscall.sync {
+  show_syscall("begin", name)
 }
 
-probe nd_syscall.fdatasync.return {
-  show_time()
-  printf("end syscallfdatasync\n")
-}
-
-probe nd_syscall.fsync {
-  show_time()
-  printf("begin syscall=fsync\n")
-}
-
-probe nd_syscall.fsync.return {
-  show_time()
-  printf("syscall_end=fsync\n")
-}
-
-probe nd_syscall.msync {
-  show_time()
-  printf("syscall_begin=msync\n")
-}
-
-probe nd_syscall.msync.return {
-  show_time()
-  printf("syscall_end=msync\n")
-}
-
-probe nd_syscall.sync {
-  show_time()
-  printf("syscall_begin=sync\n")
-}
-
-probe nd_syscall.sync.return {
-  show_time()
-  printf("syscall_end=sync\n")
-}
-
-probe nd_syscall.sync_file_range {
-  show_time()
-  printf("syscall_begin=sync_file_range\n")
-}
-
-probe nd_syscall.sync_file_range.return {
-  show_time()
-  printf("syscall_end=sync_file_range\n")
+probe nd_syscall.fdatasync.return, nd_syscall.fsync.return, nd_syscall.msync.return, nd_syscall.sync_file_range.return, nd_syscall.sync.return {
+  show_syscall("end", name)
 }
 
 probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
@@ -98,12 +57,18 @@ probe bitcoind.function("CCoinsViewDB::GetCoin") {
   dbgets++
 }
 
+probe bitcoind.function("UpdateTip") {
+  show_time()
+  printf("update_tip\n")
+}
+
 // print cache hit/miss info
 probe timer.sec(1) {
-  if (hits || misses) {
-    show_time()
-    printf("hits=%d misses=%d dbgets=%d\n", hits, misses, dbgets)
-  }
+  show_time()
+  printf("cache hits=%d misses=%d dbgets=%d\n", hits, misses, dbgets)
+  hits=0
+  misses=0
+  dbgets=0
 }
 
 probe end {
