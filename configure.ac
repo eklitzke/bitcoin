@@ -765,8 +765,9 @@ if test x$use_dtrace != xno; then
     fi
 fi
 
+AM_CONDITIONAL([ENABLE_PROBES], [test $enable_dtrace = yes])
+
 if test $enable_dtrace = yes; then
-  AM_CONDITIONAL([ENABLE_PROBES], [true])
   AC_DEFINE(WITH_PROBES, 1,
     [Define if you want a build that includes DTrace/Systemtap probes])
 
