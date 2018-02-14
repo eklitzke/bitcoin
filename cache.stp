@@ -8,19 +8,23 @@ function show_time() {
   printf("%d.%09d ", secs, micros)
 }
 
-probe nd_syscall.fdatasync {
+function show_begin(name: string) {
   show_time()
-  printf("syscall_begin=fdatasync\n")
+  printf("begin syscall=%s\n", name)
+}
+
+probe nd_syscall.fdatasync {
+  show_begin(name)
 }
 
 probe nd_syscall.fdatasync.return {
   show_time()
-  printf("syscall_end=fdatasync\n")
+  printf("end syscallfdatasync\n")
 }
 
 probe nd_syscall.fsync {
   show_time()
-  printf("syscall_begin=fsync\n")
+  printf("begin syscall=fsync\n")
 }
 
 probe nd_syscall.fsync.return {

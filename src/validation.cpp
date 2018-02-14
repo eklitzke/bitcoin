@@ -1164,6 +1164,7 @@ bool IsInitialBlockDownload()
         return true;
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     latchToFalse.store(true, std::memory_order_relaxed);
+    if (BITCOIN_FINISH_IBD_ENABLED()) BITCOIN_FINISH_IBD();
     return false;
 }
 

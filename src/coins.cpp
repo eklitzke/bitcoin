@@ -41,14 +41,10 @@ size_t CCoinsViewCache::DynamicMemoryUsage() const {
 CCoinsMap::iterator CCoinsViewCache::FetchCoin(const COutPoint &outpoint) const {
     CCoinsMap::iterator it = cacheCoins.find(outpoint);
     if (it != cacheCoins.end()) {
-        if (BITCOIN_CACHE_HIT_ENABLED()) {
-            BITCOIN_CACHE_HIT();
-        }
+        if (BITCOIN_CACHE_HIT_ENABLED()) BITCOIN_CACHE_HIT();
         return it;
     }
-    if (BITCOIN_CACHE_MISS_ENABLED()) {
-        BITCOIN_CACHE_MISS();
-    }
+    if (BITCOIN_CACHE_MISS_ENABLED()) BITCOIN_CACHE_MISS();
     Coin tmp;
     if (!base->GetCoin(outpoint, tmp))
         return cacheCoins.end();

@@ -17,11 +17,15 @@
 #define BITCOIN_CACHE_FLUSH_END_ENABLED() 0
 #define BITCOIN_CACHE_HIT_ENABLED() 0
 #define BITCOIN_CACHE_MISS_ENABLED() 0
+#define BITCOIN_FINISH_IBD_ENABLED() 0
+#define BITCOIN_CDB_WRITE_BATCH_ENABLED() 0
 
 // And these should be no-ops.
-#define BITCOIN_CACHE_FLUSH_START(unused_arg0)
-#define BITCOIN_CACHE_FLUSH_END()
-#define BITCOIN_CACHE_HIT()
-#define BITCOIN_CACHE_MISS()
+inline void BITCOIN_CACHE_FLUSH_START(size_t arg0) {}
+inline void BITCOIN_CACHE_FLUSH_END(void) {}
+inline void BITCOIN_CACHE_HIT(void) {}
+inline void BITCOIN_CACHE_MISS(void) {}
+inline void BITCOIN_FINISH_IBD(void) {}
+inline void BITCOIN_CDB_WRITE_BATCH_ENABLED(bool arg0) {}
 #endif // WITH_PROBES
 #endif // BITCOIN_PROBES_H
