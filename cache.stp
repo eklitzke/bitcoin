@@ -1,13 +1,46 @@
 #!/usr/bin/env stap
 
-global bytes_flushed, flush_count
+# global vars
+global bytes_flushed, flush_count, hits, misses, start
 
-probe process("/home/evan/code/bitcoin/src/bitcoind").mark("flushcache") {
+# record when cache flushes start
+probe process("/home/evan/code/bitcoin/src/bitcoind").mark("cache__flush_start") {
+  # track start time, bytes flushed
+  start = gettimeofday_us()
   bytes_flushed += $arg1
   flush_count++
-  printf("flushed %d bytes\n", $arg1)
+  printf("> flush %d bytes\n", $arg1)
+}
+
+# record when cache flushes end
+probe process("/home/evan/code/bitcoin/src/bitcoind").mark("cache__flush_end") {
+  # track elapsed time
+  t = gettimeofday_us() - start
+  printf("< flush (%d micros)\n", t)
+}
+
+# record cache hits
+probe process("/home/evan/code/bitcoin/src/bitcoind").mark("cache__hit") {
+  hits++
+}
+
+# record cache misses
+probe process("/home/evan/code/bitcoin/src/bitcoind").mark("cache__miss") {
+  misses++
+}
+
+# print cache hit/miss info
+probe timer.sec(10) {
+  if (hits || misses)
+    printf("hit rate: %d / %d\n", hits, hits + misses)
+}
+
+probe begin {
+  printf("Monitoring for coin flushes, please stand by...\n")
 }
 
 probe end {
   printf("total flushes: %d\n", flush_count)
+  printf("total bytes flushed: %d\n", bytes_flushed)
+  printf("hit rate: %d / %d\n", hits, misses)
 }
