@@ -12,7 +12,10 @@
 // themselves (and macros to check if they're enabled).
 #include <probes_impl.h>
 #else
-// Without DTrace, compile to nothing.
-static inline void BITCOIN_CACHEFLUSH(size_t arg0) {}
-#endif // WITH_DTRACE
+// Without probes these should all be no-ops.
+static inline void BITCOIN_CACHE_FLUSH_START(size_t arg0) {}
+static inline void BITCOIN_CACHE_FLUSH_END() {}
+static inline void BITCOIN_CACHE_HIT() {}
+static inline void BITCOIN_CACHE_MISS() {}
+#endif // WITH_PROBES
 #endif // BITCOIN_PROBES_H

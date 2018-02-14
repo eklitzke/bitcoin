@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <coins.h>
+#include <probes.h>
 
 #include <consensus/consensus.h>
 #include <random.h>
@@ -39,8 +40,13 @@ size_t CCoinsViewCache::DynamicMemoryUsage() const {
 
 CCoinsMap::iterator CCoinsViewCache::FetchCoin(const COutPoint &outpoint) const {
     CCoinsMap::iterator it = cacheCoins.find(outpoint);
-    if (it != cacheCoins.end())
+    if (it != cacheCoins.end()) {
+        if (BITCOIN_CACHE_HIT_ENABLED())
+            BITCOIN_CACHE_HIT();
         return it;
+    }
+    if (BITCOIN_CACHE_MISS_ENABLED())
+        BITCOIN_CACHE_MISS();
     Coin tmp;
     if (!base->GetCoin(outpoint, tmp))
         return cacheCoins.end();

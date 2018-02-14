@@ -352,7 +352,7 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp, bool 
 
     CBlockIndex* tip = chainActive.Tip();
     assert(tip != nullptr);
-    
+
     CBlockIndex index;
     index.pprev = tip;
     // CheckSequenceLocks() uses chainActive.Height()+1 to evaluate
@@ -2097,10 +2097,12 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
             if (!CheckDiskSpace(48 * 2 * 2 * pcoinsTip->GetCacheSize()))
                 return state.Error("out of disk space");
             // Flush the chainstate (which may refer to block index entries).
-            if (BITCOIN_FLUSHCACHE_ENABLED())
-                BITCOIN_FLUSHCACHE(cacheSize);
+            if (BITCOIN_CACHE_FLUSH_START_ENABLED())
+                BITCOIN_CACHE_FLUSH_START(cacheSize);
             if (!pcoinsTip->Flush())
                 return AbortNode(state, "Failed to write to coin database");
+            if (BITCOIN_CACHE_FLUSH_END_ENABLED())
+                BITCOIN_CACHE_FLUSH_END();
             nLastFlush = nNow;
         }
     }

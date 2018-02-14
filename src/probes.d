@@ -1,7 +1,10 @@
 /* Bitcoin DTrace (and SystemTap) provider */
 
 provider bitcoin {
-  probe flushcache(size_t);
+  probe cache__flush_start(size_t);
+  probe cache__flush_end();
+  probe cache__hit();
+  probe cache__miss();
 };
 
 #pragma D attributes Evolving/Evolving/Common provider bitcoin provider

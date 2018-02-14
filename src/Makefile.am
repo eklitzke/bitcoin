@@ -177,6 +177,22 @@ BITCOIN_CORE_H = \
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h
 
+if ENABLE_PROBES
+BITCOIN_CORE_H += probes.h
+
+probes_impl.h: probes.d
+	$(AM_V_GEN) $(DTRACE) $(DFLAGS) -o $@ -h -s $<
+
+BUILT_SOURCES = probes_impl.h
+
+# This is kind of hacky, but required because
+PROBES_OBJ=probes.o
+
+# only on linux
+probes.o: probes.d probes_impl.h
+	$(AM_V_GEN) $(DTRACE) -o $@ -G -s $<
+endif
+
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -226,13 +242,6 @@ libbitcoin_server_a_SOURCES = \
   validationinterface.cpp \
   versionbits.cpp \
   $(BITCOIN_CORE_H)
-
-if ENABLE_PROBES
-probes_impl.h: probes.d
-	$(AM_V_GEN) $(DTRACE) $(DFLAGS) -o $@ -h -s $<
-
-BITCOIN_CORE_H += probes.h
-endif
 
 if ENABLE_ZMQ
 libbitcoin_zmq_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(ZMQ_CFLAGS)
@@ -345,6 +354,7 @@ libbitcoin_common_a_SOURCES = \
   script/standard.cpp \
   warnings.cpp \
   $(BITCOIN_CORE_H)
+libbitcoin_common_a_LIBADD = $(PROBES_OBJ)
 
 # util: shared between all executables.
 # This library *must* be included to make sure that the glibc
@@ -412,11 +422,7 @@ bitcoind_LDADD = \
 bitcoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 if ENABLE_PROBES
-# only on linux
-probes.o: probes.d probes_impl.h
-	$(AM_V_GEN) $(DTRACE) -o $@ -G -s $<
-
-bitcoind_LDADD += probes.o
+bitcoind_LDADD += $(PROBES_OBJ)
 endif
 
 # bitcoin-cli binary #
