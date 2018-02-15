@@ -153,6 +153,10 @@ libqrencode (optional) can be installed with:
 
     sudo dnf install qrencode-devel
 
+To create a build with SystemTap probes you'll need:
+
+    sudo dnf install systemtap-sdt-devel
+
 Notes
 -----
 The release is built with GCC and then "strip bitcoind" to strip the debug

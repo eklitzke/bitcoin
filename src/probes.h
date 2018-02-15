@@ -25,6 +25,7 @@ DEFINE_PROBE_ENABLED(CACHE_HIT)
 DEFINE_PROBE_ENABLED(CACHE_MISS)
 DEFINE_PROBE_ENABLED(FINISH_IBD)
 DEFINE_PROBE_ENABLED(CDB_WRITE_BATCH)
+DEFINE_PROBE_ENABLED(UPDATE_TIP)
 
 // And these should be no-ops.
 inline void BITCOIN_CACHE_FLUSH_START(size_t) {}
@@ -33,5 +34,6 @@ inline void BITCOIN_CACHE_HIT(void) {}
 inline void BITCOIN_CACHE_MISS(void) {}
 inline void BITCOIN_FINISH_IBD(void) {}
 inline void BITCOIN_CDB_WRITE_BATCH(size_t, bool) {}
+inline void BITCOIN_UPDATE_TIP(size_t, size_t) {}
 #endif // WITH_PROBES
 #endif // BITCOIN_PROBES_H
