@@ -2179,13 +2179,16 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
             DoWarning(strWarning);
         }
     }
-    if (BITCOIN_UPDATE_TIP_ENABLED())
-        BITCOIN_UPDATE_TIP(pcoinsTip->DynamicMemoryUsage(), pcoinsTip->GetCacheSize());
+    const double progress = GuessVerificationProgress(chainParams.TxData(), pindexNew);
+    if (BITCOIN_UPDATE_TIP_ENABLED()) {
+        const unsigned long intprog = progress * 1000000;
+        BITCOIN_UPDATE_TIP(pcoinsTip->DynamicMemoryUsage(), pcoinsTip->GetCacheSize(), intprog);
+    }
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__,
       pindexNew->GetBlockHash().ToString(), pindexNew->nHeight, pindexNew->nVersion,
       log(pindexNew->nChainWork.getdouble())/log(2.0), (unsigned long)pindexNew->nChainTx,
       DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexNew->GetBlockTime()),
-      GuessVerificationProgress(chainParams.TxData(), pindexNew), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+      progress, pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
     if (!warningMessages.empty())
         LogPrintf(" warning='%s'", boost::algorithm::join(warningMessages, ", "));
     LogPrintf("\n");

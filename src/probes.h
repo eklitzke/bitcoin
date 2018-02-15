@@ -34,6 +34,6 @@ inline void BITCOIN_CACHE_HIT(void) {}
 inline void BITCOIN_CACHE_MISS(void) {}
 inline void BITCOIN_FINISH_IBD(void) {}
 inline void BITCOIN_CDB_WRITE_BATCH(size_t, bool) {}
-inline void BITCOIN_UPDATE_TIP(size_t, size_t) {}
+inline void BITCOIN_UPDATE_TIP(size_t, size_t, unsigned long) {}
 #endif // WITH_PROBES
 #endif // BITCOIN_PROBES_H

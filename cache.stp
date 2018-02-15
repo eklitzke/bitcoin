@@ -1,5 +1,5 @@
 // global vars
-global bytes_flushed, flush_count, hits, misses, dbgets
+global hits, misses, dbgets
 
 function show_time() {
   t = gettimeofday_ns()
@@ -26,10 +26,8 @@ probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
 
 // record when cache flushes start
 probe bitcoind.mark("cache__flush_start") {
-  bytes_flushed += $arg1
-  flush_count++
   show_time()
-  printf("begin flush size=%d\n", $arg1)
+  printf("begin flush coins=%lu size=%lu\n", $arg1, $arg2)
 }
 
 // record when cache flushes end
@@ -59,7 +57,7 @@ probe bitcoind.function("CCoinsViewDB::GetCoin") {
 
 probe bitcoind.mark("update__tip") {
   show_time()
-  printf("update_tip cache_bytes=%lu utxo_count=%lu\n", $arg1, $arg2)
+  printf("update_tip cache_bytes=%lu utxo_count=%lu, progress=0.%06d\n", $arg1, $arg2, $arg3)
 }
 
 // print cache hit/miss info
@@ -69,11 +67,4 @@ probe timer.sec(1) {
   hits=0
   misses=0
   dbgets=0
-}
-
-probe end {
-  printf("---\nEND\n")
-  printf("total flushes: %d\n", flush_count)
-  printf("total bytes flushed: %d\n", bytes_flushed)
-  printf("hit rate: %d / %d\n", hits, misses)
 }

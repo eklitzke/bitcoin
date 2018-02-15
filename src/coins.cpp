@@ -212,7 +212,7 @@ bool CCoinsViewCache::Flush() {
     bool fOk = base->BatchWrite(cacheCoins, hashBlock);
     cacheCoins.clear();
     cachedCoinsUsage = 0;
-    if (BITCOIN_CACHE_FLUSH_END_ENABLED())
+    if (BITCOIN_CACHE_FLUSH_END_ENABLED() && m_enable_probing)
         BITCOIN_CACHE_FLUSH_END();
     return fOk;
 }
