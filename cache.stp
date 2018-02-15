@@ -1,5 +1,5 @@
 // global vars
-global hits, misses, sys, vfsinfo
+global hits, misses, io, sys, vfs
 
 function show_time_(event: string) {
   t = gettimeofday_ns()
@@ -10,31 +10,39 @@ function show_time_(event: string) {
 
 function show_time(event: string) {
   show_time_(event)
-  printf(" ")
+  print(" ")
 }
 
-probe nd_syscall.fdatasync, nd_syscall.fsync, nd_syscall.msync, nd_syscall.sync_file_range, nd_syscall.sync, nd_syscall.open, nd_syscall.openat, nd_syscall.close, nd_syscall.mmap2, nd_syscall.munmap {
+probe nd_syscall.open*, nd_syscall.close, nd_syscall.*map*, nd_syscall.brk, nd_syscall.stat {
   if (pid() == target()) {
     sys[name]++
   }
 }
 
-function readwritehelper(name: string, devname: string, nbytes: long) {
+function rwhelper(name: string, devname: string, nbytes: long) {
   if (nbytes > 0 && pid() == target()) {
     if (devname == "N/A")
       tag = sprintf("%s.cached", name)
     else
       tag = sprintf("%s.uncached", name)
-    vfsinfo[tag] += nbytes
+    io[tag] += nbytes
   }
 }
 
-probe vfs.read*.return {
-  readwritehelper(name, devname, $return)
+// bitcoin does not use readv
+probe vfs.read.return {
+  rwhelper("read", devname, $return)
 }
 
-probe vfs.write*.return {
-  readwritehelper(name, devname, $return)
+// bitcoin does not use writev
+probe vfs.write.return {
+  rwhelper("write", devname, $return)
+}
+
+probe vfs.* {
+  if (pid() == target()) {
+    vfs[name]++
+  }
 }
 
 probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
@@ -49,7 +57,7 @@ probe bitcoind.mark("cache__flush_start") {
 // record when cache flushes end
 probe bitcoind.mark("cache__flush_end") {
   show_time("flush")
-  printf("when=end\n")
+  println("when=end")
 }
 
 // record cache hits
@@ -64,7 +72,7 @@ probe bitcoind.mark("cache__miss") {
 
 probe bitcoind.mark("finish__ibd") {
   show_time("finish_ibd")
-  printf("\n")
+  println()
   exit()
 }
 
@@ -77,7 +85,7 @@ probe bitcoind.function("CCoinsViewDB::GetCoin") {
 
 probe bitcoind.mark("update__tip") {
   show_time("update_tip")
-  printf("cache_bytes=%lu utxo_count=%lu progress=0.%06d\n", $arg1, $arg2, $arg3)
+  printf("height=%lu utxo_count=%lu utxo_memory=%lu ldb_count=%lu progress=0.%06d\n", $arg1, $arg2, $arg3, $arg4, $arg5)
 }
 
 probe timer.sec(1) {
@@ -86,19 +94,28 @@ probe timer.sec(1) {
     count = sys[name]
     printf(" %s=%d", name, count)
   }
-  delete sys
-  printf("\n")
+  println()
 
   show_time("cache")
   printf("hits=%d misses=%d\n", hits, misses)
   hits=0
   misses=0
 
-  show_time_("vfs")
-  foreach([name] in vfsinfo) {
-    count = vfsinfo[name]
+  show_time_("io")
+  foreach([name] in io) {
+    count = io[name]
     printf(" %s=%d", name, count)
   }
-  printf("\n")
-  delete vfsinfo
+  println()
+
+  show_time_("vfs")
+  foreach([name] in vfs) {
+    count = vfs[name]
+    printf(" %s=%d", name, count)
+  }
+  println()
+
+  delete sys
+  delete io
+  delete vfs
 }

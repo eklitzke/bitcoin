@@ -1,0 +1,2 @@
+sizeof COutPoint=36
+sizeof CCoinsCacheEntry=56
