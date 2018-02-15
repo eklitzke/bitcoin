@@ -49,15 +49,9 @@ probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
 }
 
 // record when cache flushes start
-probe bitcoind.mark("cache__flush_start") {
+probe bitcoind.mark("cache__flush") {
   show_time("flush")
-  printf("when=begin coins=%lu size=%lu\n", $arg1, $arg2)
-}
-
-// record when cache flushes end
-probe bitcoind.mark("cache__flush_end") {
-  show_time("flush")
-  println("when=end")
+  printf("num_coins=%lu num_bytes=%lu\n", $arg1, $arg2)
 }
 
 // record cache hits

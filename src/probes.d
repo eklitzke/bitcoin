@@ -1,8 +1,7 @@
 /* Bitcoin DTrace (and SystemTap) provider */
 
 provider bitcoin {
-  probe cache__flush_start(size_t coins, size_t num_bytes);
-  probe cache__flush_end();
+  probe cache__flush(size_t num_coins, size_t num_bytes);
   probe cache__hit();
   probe cache__miss();
   probe finish__ibd();
