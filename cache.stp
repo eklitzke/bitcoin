@@ -1,25 +1,40 @@
 // global vars
-global hits, misses, dbgets
+global hits, misses, sys, vfsinfo
 
-function show_time() {
+function show_time_(event: string) {
   t = gettimeofday_ns()
   secs = t / 1000000000
   micros = t % 1000000000
-  printf("t=%d.%09d ", secs, micros)
+  printf("t=%d.%09d event=%s", secs, micros, event)
+}
+
+function show_time(event: string) {
+  show_time_(event)
+  printf(" ")
 }
 
 probe nd_syscall.fdatasync, nd_syscall.fsync, nd_syscall.msync, nd_syscall.sync_file_range, nd_syscall.sync, nd_syscall.open, nd_syscall.openat, nd_syscall.close, nd_syscall.mmap2, nd_syscall.munmap {
   if (pid() == target()) {
-    show_time()
-    printf("syscall=%s when=begin args=[%s]\n", name, argstr)
+    sys[name]++
   }
 }
 
-probe nd_syscall.fdatasync.return, nd_syscall.fsync.return, nd_syscall.msync.return, nd_syscall.sync_file_range.return, nd_syscall.sync.return, nd_syscall.open.return, nd_syscall.openat.return, nd_syscall.close.return, nd_syscall.mmap2.return, nd_syscall.munmap.return {
-  if (pid() == target()) {
-    show_time()
-    printf("syscall=%s when=end return=%s\n", name, retstr)
+function readwritehelper(name: string, devname: string, nbytes: long) {
+  if (nbytes > 0 && pid() == target()) {
+    if (devname == "N/A")
+      tag = sprintf("%s.cached", name)
+    else
+      tag = sprintf("%s.uncached", name)
+    vfsinfo[tag] += nbytes
   }
+}
+
+probe vfs.read*.return {
+  readwritehelper(name, devname, $return)
+}
+
+probe vfs.write*.return {
+  readwritehelper(name, devname, $return)
 }
 
 probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
@@ -27,14 +42,14 @@ probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
 
 // record when cache flushes start
 probe bitcoind.mark("cache__flush_start") {
-  show_time()
-  printf("event=flush when=begin coins=%lu size=%lu\n", $arg1, $arg2)
+  show_time("flush")
+  printf("when=begin coins=%lu size=%lu\n", $arg1, $arg2)
 }
 
 // record when cache flushes end
 probe bitcoind.mark("cache__flush_end") {
-  show_time()
-  printf("event=flush when=end\n")
+  show_time("flush")
+  printf("when=end\n")
 }
 
 // record cache hits
@@ -48,15 +63,41 @@ probe bitcoind.mark("cache__miss") {
 }
 
 probe bitcoind.mark("finish__ibd") {
-  show_time()
-  printf("event=finish_ibd\n")
+  show_time("finish_ibd")
+  printf("\n")
 }
 
+/*
+global dbgets
 probe bitcoind.function("CCoinsViewDB::GetCoin") {
   dbgets++
 }
+*/
 
 probe bitcoind.mark("update__tip") {
-  show_time()
-  printf("event=update_tip cache_bytes=%lu utxo_count=%lu, progress=0.%06d\n", $arg1, $arg2, $arg3)
+  show_time("update_tip")
+  printf("cache_bytes=%lu utxo_count=%lu progress=0.%06d\n", $arg1, $arg2, $arg3)
+}
+
+probe timer.sec(1) {
+  show_time_("syscalls")
+  foreach ([name] in sys) {
+    count = sys[name]
+    printf(" %s=%d", name, count)
+  }
+  delete sys
+  printf("\n")
+
+  show_time("cache")
+  printf("hits=%d misses=%d\n", hits, misses)
+  hits=0
+  misses=0
+
+  show_time_("vfs")
+  foreach([name] in vfsinfo) {
+    count = vfsinfo[name]
+    printf(" %s=%d", name, count)
+  }
+  printf("\n")
+  delete vfsinfo
 }
