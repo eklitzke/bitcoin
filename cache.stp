@@ -8,17 +8,18 @@ function show_time() {
   printf("%d.%09d ", secs, micros)
 }
 
-function show_syscall(tag: string, name: string) {
-  show_time()
-  printf("%s syscall=%s, pid=%d\n", tag, name, pid())
+probe nd_syscall.fdatasync, nd_syscall.fsync, nd_syscall.msync, nd_syscall.sync_file_range, nd_syscall.sync, nd_syscall.open, nd_syscall.openat, nd_syscall.close, nd_syscall.mmap2, nd_syscall.munmap {
+  if (pid() == target()) {
+    show_time()
+    printf("begin syscall=%s args=[%s]\n", name, argstr)
+  }
 }
 
-probe nd_syscall.fdatasync, nd_syscall.fsync, nd_syscall.msync, nd_syscall.sync_file_range, nd_syscall.sync {
-  show_syscall("begin", name)
-}
-
-probe nd_syscall.fdatasync.return, nd_syscall.fsync.return, nd_syscall.msync.return, nd_syscall.sync_file_range.return, nd_syscall.sync.return {
-  show_syscall("end", name)
+probe nd_syscall.fdatasync.return, nd_syscall.fsync.return, nd_syscall.msync.return, nd_syscall.sync_file_range.return, nd_syscall.sync.return, nd_syscall.open.return, nd_syscall.openat.return, nd_syscall.close.return, nd_syscall.mmap2.return, nd_syscall.munmap.return {
+  if (pid() == target()) {
+    show_time()
+    printf("end syscall=%s return=%s\n", name, retstr)
+  }
 }
 
 probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
@@ -58,13 +59,4 @@ probe bitcoind.function("CCoinsViewDB::GetCoin") {
 probe bitcoind.mark("update__tip") {
   show_time()
   printf("update_tip cache_bytes=%lu utxo_count=%lu, progress=0.%06d\n", $arg1, $arg2, $arg3)
-}
-
-// print cache hit/miss info
-probe timer.sec(1) {
-  show_time()
-  printf("cache hits=%d misses=%d dbgets=%d\n", hits, misses, dbgets)
-  hits=0
-  misses=0
-  dbgets=0
 }
