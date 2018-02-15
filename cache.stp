@@ -65,6 +65,7 @@ probe bitcoind.mark("cache__miss") {
 probe bitcoind.mark("finish__ibd") {
   show_time("finish_ibd")
   printf("\n")
+  exit()
 }
 
 /*
