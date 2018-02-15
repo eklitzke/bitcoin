@@ -2099,13 +2099,8 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
             if (!CheckDiskSpace(48 * 2 * 2 * pcoinsTip->GetCacheSize()))
                 return state.Error("out of disk space");
             // Flush the chainstate (which may refer to block index entries).
-            if (BITCOIN_CACHE_FLUSH_START_ENABLED())
-                BITCOIN_CACHE_FLUSH_START(cacheSize);
             if (!pcoinsTip->Flush())
                 return AbortNode(state, "Failed to write to coin database");
-            if (BITCOIN_CACHE_FLUSH_END_ENABLED()) {
-                BITCOIN_CACHE_FLUSH_END();
-            }
             nLastFlush = nNow;
         }
     }

@@ -207,9 +207,13 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn
 }
 
 bool CCoinsViewCache::Flush() {
+    if (BITCOIN_CACHE_FLUSH_START_ENABLED() && m_enable_probing)
+        BITCOIN_CACHE_FLUSH_START(cacheCoins.size(), DynamicMemoryUsage());
     bool fOk = base->BatchWrite(cacheCoins, hashBlock);
     cacheCoins.clear();
     cachedCoinsUsage = 0;
+    if (BITCOIN_CACHE_FLUSH_END_ENABLED())
+        BITCOIN_CACHE_FLUSH_END();
     return fOk;
 }
 
