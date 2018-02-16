@@ -158,8 +158,8 @@ CDBWrapper::~CDBWrapper()
 bool CDBWrapper::WriteBatch(CDBBatch& batch, bool fSync)
 {
     leveldb::Status status = pdb->Write(fSync ? syncoptions : writeoptions, &batch.batch);
-    if (BITCOIN_CDB_WRITE_BATCH_ENABLED()) {
-        BITCOIN_CDB_WRITE_BATCH(batch.SizeEstimate(), fSync);
+    if (PROBE_CDB_WRITE_BATCH_ENABLED()) {
+        PROBE_CDB_WRITE_BATCH(batch.SizeEstimate(), fSync);
     }
     dbwrapper_private::HandleError(status);
     return true;

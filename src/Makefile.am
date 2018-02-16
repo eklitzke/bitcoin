@@ -182,6 +182,8 @@ BITCOIN_CORE_H += probes.h
 
 probes_impl.h: probes.d
 	$(AM_V_GEN) $(DTRACE) $(DFLAGS) -o $@ -h -s $<
+	sed 's/BITCOIN_/PROBE_/' $@ > $@.tmp
+	mv $@.tmp $@
 
 BUILT_SOURCES = probes_impl.h
 

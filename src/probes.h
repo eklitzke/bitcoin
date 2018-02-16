@@ -16,7 +16,7 @@
 
 // Create an "enabled" macro that always returns false.
 #define DEFINE_PROBE_ENABLED(name)\
-    inline int BITCOIN_ ## name ## _ENABLED(void) { return 0; }
+    inline int PROBE_ ## name ## _ENABLED(void) { return 0; }
 
 // Nothing should be enabled.
 DEFINE_PROBE_ENABLED(CACHE_FLUSH_START)
@@ -28,11 +28,11 @@ DEFINE_PROBE_ENABLED(CDB_WRITE_BATCH)
 DEFINE_PROBE_ENABLED(UPDATE_TIP)
 
 // And these should be no-ops.
-inline void BITCOIN_CACHE_FLUSH(size_t, size_t) {}
-inline void BITCOIN_CACHE_HIT(void) {}
-inline void BITCOIN_CACHE_MISS(void) {}
-inline void BITCOIN_FINISH_IBD(void) {}
-inline void BITCOIN_CDB_WRITE_BATCH(size_t, bool) {}
-inline void BITCOIN_UPDATE_TIP(uint32_t, size_t, size_t, size_t, unsigned int) {}
+inline void PROBE_CACHE_FLUSH(size_t, size_t) {}
+inline void PROBE_CACHE_HIT(void) {}
+inline void PROBE_CACHE_MISS(void) {}
+inline void PROBE_FINISH_IBD(void) {}
+inline void PROBE_CDB_WRITE_BATCH(size_t, bool) {}
+inline void PROBE_UPDATE_TIP(uint32_t, size_t, size_t, size_t, unsigned int) {}
 #endif // WITH_PROBES
 #endif // BITCOIN_PROBES_H

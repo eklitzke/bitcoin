@@ -1164,8 +1164,8 @@ bool IsInitialBlockDownload()
         return true;
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     latchToFalse.store(true, std::memory_order_relaxed);
-    if (BITCOIN_FINISH_IBD_ENABLED())
-        BITCOIN_FINISH_IBD();
+    if (PROBE_FINISH_IBD_ENABLED())
+        PROBE_FINISH_IBD();
     return false;
 }
 
@@ -2180,13 +2180,13 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
         }
     }
     const double progress = GuessVerificationProgress(chainParams.TxData(), pindexNew);
-    if (BITCOIN_UPDATE_TIP_ENABLED()) {
+    if (PROBE_UPDATE_TIP_ENABLED()) {
         const unsigned int intprog = progress * 1000000;
-        BITCOIN_UPDATE_TIP(pindexNew->nHeight,
-                           pcoinsTip->GetCacheSize(),
-                           pcoinsTip->DynamicMemoryUsage(),
-                           pcoinsdbview->EstimateSize(),
-                           intprog);
+        PROBE_UPDATE_TIP(pindexNew->nHeight,
+                         pcoinsTip->GetCacheSize(),
+                         pcoinsTip->DynamicMemoryUsage(),
+                         pcoinsdbview->EstimateSize(),
+                         intprog);
     }
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__,
       pindexNew->GetBlockHash().ToString(), pindexNew->nHeight, pindexNew->nVersion,
