@@ -1,5 +1,5 @@
 // global vars
-global hits, misses, fop, io, vfs
+global hits, misses, io, vfs
 
 function show_time_(event: string) {
   t = gettimeofday_ns()
@@ -33,11 +33,14 @@ probe vfs.write.return {
   rwhelper("write", devname, $return)
 }
 
+/*
+ global fop
 probe generic.fop.* {
   if (pid() == target()) {
     fop[name]++
   }
 }
+*/
 
 probe vfs.* {
   if (pid() == target()) {
@@ -82,18 +85,35 @@ probe bitcoind.mark("update__tip") {
   printf("height=%lu utxo_count=%lu utxo_memory=%lu ldb_count=%lu progress=0.%06d\n", $arg1, $arg2, $arg3, $arg4, $arg5)
 }
 
+global seeks, oldsec
+
+probe ioblock_trace.request {
+  if (size == 0) next
+  if (pid() != target()) next
+  sectorsize = (@defined($q->limits->logical_block_size)
+		? $q->limits->logical_block_size
+		: (@defined($q->logical_block_size) ? $q->logical_block_size
+		   : $q->hardsect_size))
+  if (sector != oldsec)
+    seeks++
+  oldsec = sector + (size/sectorsize)
+}
+
 probe timer.sec(1) {
   show_time("cache")
   printf("hits=%d misses=%d\n", hits, misses)
   hits=0
   misses=0
 
+  /*
   show_time_("fop")
   foreach([name] in fop) {
     count = fop[name]
     printf(" %s=%d", name, count)
   }
   println()
+  delete fop
+  */
 
   show_time_("io")
   foreach([name] in io) {
@@ -101,6 +121,7 @@ probe timer.sec(1) {
     printf(" %s=%d", name, count)
   }
   println()
+  delete io
 
   show_time_("vfs")
   foreach([name] in vfs) {
@@ -108,8 +129,9 @@ probe timer.sec(1) {
     printf(" %s=%d", name, count)
   }
   println()
-
-  delete fop
-  delete io
   delete vfs
+
+  show_time("seeks")
+  printf("count=%lu\n", seeks)
+  seeks = 0
 }
