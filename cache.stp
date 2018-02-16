@@ -23,14 +23,27 @@ function rwhelper(name: string, devname: string, nbytes: long) {
   }
 }
 
+global rlat, wlat
+global rtim, wtim
+
+probe vfs.read {
+  rlat[tid()] = gettimeofday_ns()
+}
+
+probe vfs.write {
+  wlat[tid()] = gettimeofday_ns()
+}
+
 // bitcoin does not use readv
 probe vfs.read.return {
   rwhelper("read", devname, $return)
+  rtim <<< gettimeofday_ns() - rlat[tid()]
 }
 
 // bitcoin does not use writev
 probe vfs.write.return {
   rwhelper("write", devname, $return)
+  wtim <<< gettimeofday_ns() - wlat[tid()]
 }
 
 global fop
@@ -191,6 +204,14 @@ function show_vfs() {
   foreach([name] in vfs) {
     count = vfs[name]
     printf(" %s=%d", name, count)
+  }
+  if (@sum(rtim)) {
+    printf(" avgreadlatency=%lu", @avg(rtim))
+    delete rtim
+  }
+  if (@sum(wtim)) {
+    printf(" avgwritelatency=%lu", @avg(wtim))
+    delete wtim
   }
   println()
   delete vfs
