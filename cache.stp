@@ -1,5 +1,5 @@
 // global vars
-global hits, misses, io, sys, vfs
+global hits, misses, fop, io, vfs
 
 function show_time_(event: string) {
   t = gettimeofday_ns()
@@ -11,12 +11,6 @@ function show_time_(event: string) {
 function show_time(event: string) {
   show_time_(event)
   print(" ")
-}
-
-probe nd_syscall.open*, nd_syscall.close, nd_syscall.*map*, nd_syscall.brk, nd_syscall.stat {
-  if (pid() == target()) {
-    sys[name]++
-  }
 }
 
 function rwhelper(name: string, devname: string, nbytes: long) {
@@ -37,6 +31,12 @@ probe vfs.read.return {
 // bitcoin does not use writev
 probe vfs.write.return {
   rwhelper("write", devname, $return)
+}
+
+probe generic.fop.* {
+  if (pid() == target()) {
+    fop[name]++
+  }
 }
 
 probe vfs.* {
@@ -83,17 +83,17 @@ probe bitcoind.mark("update__tip") {
 }
 
 probe timer.sec(1) {
-  show_time_("syscalls")
-  foreach ([name] in sys) {
-    count = sys[name]
-    printf(" %s=%d", name, count)
-  }
-  println()
-
   show_time("cache")
   printf("hits=%d misses=%d\n", hits, misses)
   hits=0
   misses=0
+
+  show_time_("fop")
+  foreach([name] in fop) {
+    count = fop[name]
+    printf(" %s=%d", name, count)
+  }
+  println()
 
   show_time_("io")
   foreach([name] in io) {
@@ -109,7 +109,7 @@ probe timer.sec(1) {
   }
   println()
 
-  delete sys
+  delete fop
   delete io
   delete vfs
 }
