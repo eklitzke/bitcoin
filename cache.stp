@@ -106,25 +106,46 @@ probe bitcoind.mark("update__tip") {
 global oldsec, blockio
 
 probe ioblock_trace.request {
+  if (size != 0 && pid() == target()) {
+    if (sector != oldsec) {
+      blockio["seeks"]++
+    }
+    blockio["requests"]++
+    blockio["bytes"] += size
+  }
+
+  //blockreqs[bdev, sector, size] = gettimeofday_ns()
+}
+
+probe ioblock_trace.end {
+  if (size != 0 && pid() == target()) {
+    sectorsize = (@defined($q->limits->logical_block_size)
+                  ? $q->limits->logical_block_size
+                  : (@defined($q->logical_block_size) ? $q->logical_block_size
+                     : $q->hardsect_size))
+    oldsec = sector + (size/sectorsize)
+  }
+}
+
+/*
+global blocktiming, blockreqs
+
+probe ioblock_trace.end {
   if (size == 0) next
   if (pid() != target()) next
-  sectorsize = (@defined($q->limits->logical_block_size)
-		? $q->limits->logical_block_size
-		: (@defined($q->logical_block_size) ? $q->logical_block_size
-		   : $q->hardsect_size))
-  if (sector != oldsec) {
-    blockio["seeks"]++
+  prevtime = blockreqs[bdev, sector, size]
+  if (prevtime) {
+    elapsed = gettimeofday_ns() - blockreqs[bdev, sector, size]
+    blocktiming <<< elapsed
+    delete blockreqs[bdev, sector, size]
   }
-  oldsec = sector + (size/sectorsize)
-  blockio["requests"]++
-  blockio["bytes"] += size
-  // TODO: use rw field
 }
+*/
 
 function show_blockio() {
   show_time_("blockio")
   foreach([name] in blockio) {
-    count = io[name]
+    count = blockio[name]
     printf(" %s=%d", name, count)
   }
   println()
