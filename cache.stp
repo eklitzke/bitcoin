@@ -33,8 +33,7 @@ probe vfs.write.return {
   rwhelper("write", devname, $return)
 }
 
-/*
- global fop
+global fop
 probe generic.fop.* {
   if (pid() == target()) {
     fop[name]++
@@ -42,16 +41,14 @@ probe generic.fop.* {
 }
 
 function show_fop() {
-show_time_("fop")
-foreach([name] in fop) {
-count = fop[name]
-printf(" %s=%d", name, count)
+  show_time_("fop")
+  foreach([name] in fop) {
+    count = fop[name]
+    printf(" %s=%d", name, count)
+  }
+  println()
+  delete fop
 }
-println()
-delete fop
-}
-
-*/
 
 probe vfs.* {
   if (pid() == target()) {
@@ -103,7 +100,28 @@ probe bitcoind.mark("update__tip") {
   printf("height=%lu utxo_count=%lu utxo_memory=%lu ldb_count=%lu progress=0.%06d\n", $arg1, $arg2, $arg3, $arg4, $arg5)
 }
 
-global oldsec, blockio
+probe ioblock_trace.request {
+  io["blockio.requests"]++
+}
+
+
+  /*
+   global oldsec, blockio
+  global bios, biotime
+
+probe kernel.function("generic_make_request") {
+  if (pid() == target()) {
+    bios[$bio] = gettimeofday_ns()
+  }
+}
+
+probe kernel.function("bio_endio") {
+  if (pid() == target()) {
+    t = gettimeofday_ns() - bios[$bio]
+    delete bios[$bio]
+    biotime <<< t
+  }
+}
 
 probe ioblock_trace.request {
   if (size != 0 && pid() == target()) {
@@ -117,6 +135,8 @@ probe ioblock_trace.request {
   //blockreqs[bdev, sector, size] = gettimeofday_ns()
 }
 
+// N.B. This is not called reliably, because the kernel can merge block io
+// requests.
 probe ioblock_trace.end {
   if (size != 0 && pid() == target()) {
     sectorsize = (@defined($q->limits->logical_block_size)
@@ -124,10 +144,10 @@ probe ioblock_trace.end {
                   : (@defined($q->logical_block_size) ? $q->logical_block_size
                      : $q->hardsect_size))
     oldsec = sector + (size/sectorsize)
+    blockio["completed"]++
   }
 }
 
-/*
 global blocktiming, blockreqs
 
 probe ioblock_trace.end {
@@ -140,7 +160,6 @@ probe ioblock_trace.end {
     delete blockreqs[bdev, sector, size]
   }
 }
-*/
 
 function show_blockio() {
   show_time_("blockio")
@@ -148,9 +167,14 @@ function show_blockio() {
     count = blockio[name]
     printf(" %s=%d", name, count)
   }
+  if (@sum(biotime)) {
+    printf(" avglatency=%lu", @avg(biotime))
+    delete biotime
+  }
   println()
   delete blockio
 }
+*/
 
 function show_io() {
   show_time_("io")
@@ -176,5 +200,6 @@ probe timer.sec(1) {
   show_cache()
   show_io()
   show_vfs()
-  show_blockio()
+  show_fop()
+  //show_blockio()
 }
