@@ -113,8 +113,15 @@ probe bitcoind.mark("update__tip") {
   printf("height=%lu utxo_count=%lu utxo_memory=%lu ldb_count=%lu progress=0.%06d\n", $arg1, $arg2, $arg3, $arg4, $arg5)
 }
 
+global ioreqs
 probe ioblock_trace.request {
-  io["blockio.requests"]++
+  ioreqs++
+}
+
+function show_blockio() {
+  show_time("blockio")
+  printf("reqs=%lu\n", ioreqs)
+  ioreqs = 0
 }
 
 
@@ -205,16 +212,21 @@ function show_vfs() {
     count = vfs[name]
     printf(" %s=%d", name, count)
   }
+  println()
+  delete vfs
+}
+
+function show_latency() {
+  show_time_("latency")
   if (@sum(rtim)) {
-    printf(" avgreadlatency=%lu", @avg(rtim))
+    printf(" avgread=%lu", @avg(rtim))
     delete rtim
   }
   if (@sum(wtim)) {
-    printf(" avgwritelatency=%lu", @avg(wtim))
+    printf(" avgwrite=%lu", @avg(wtim))
     delete wtim
   }
   println()
-  delete vfs
 }
 
 probe timer.sec(1) {
@@ -222,5 +234,6 @@ probe timer.sec(1) {
   show_io()
   show_vfs()
   show_fop()
-  //show_blockio()
+  show_latency()
+  show_blockio()
 }
