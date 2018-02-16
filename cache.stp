@@ -40,6 +40,17 @@ probe generic.fop.* {
     fop[name]++
   }
 }
+
+function show_fop() {
+show_time_("fop")
+foreach([name] in fop) {
+count = fop[name]
+printf(" %s=%d", name, count)
+}
+println()
+delete fop
+}
+
 */
 
 probe vfs.* {
@@ -67,6 +78,13 @@ probe bitcoind.mark("cache__miss") {
   misses++
 }
 
+function show_cache() {
+  show_time("cache")
+  printf("hits=%d misses=%d\n", hits, misses)
+  hits=0
+  misses=0
+}
+
 probe bitcoind.mark("finish__ibd") {
   show_time("finish_ibd")
   println()
@@ -85,7 +103,7 @@ probe bitcoind.mark("update__tip") {
   printf("height=%lu utxo_count=%lu utxo_memory=%lu ldb_count=%lu progress=0.%06d\n", $arg1, $arg2, $arg3, $arg4, $arg5)
 }
 
-global seeks, oldsec
+global oldsec, blockio
 
 probe ioblock_trace.request {
   if (size == 0) next
@@ -94,27 +112,26 @@ probe ioblock_trace.request {
 		? $q->limits->logical_block_size
 		: (@defined($q->logical_block_size) ? $q->logical_block_size
 		   : $q->hardsect_size))
-  if (sector != oldsec)
-    seeks++
+  if (sector != oldsec) {
+    blockio["seeks"]++
+  }
   oldsec = sector + (size/sectorsize)
+  blockio["requests"]++
+  blockio["bytes"] += size
+  // TODO: use rw field
 }
 
-probe timer.sec(1) {
-  show_time("cache")
-  printf("hits=%d misses=%d\n", hits, misses)
-  hits=0
-  misses=0
-
-  /*
-  show_time_("fop")
-  foreach([name] in fop) {
-    count = fop[name]
+function show_blockio() {
+  show_time_("blockio")
+  foreach([name] in blockio) {
+    count = io[name]
     printf(" %s=%d", name, count)
   }
   println()
-  delete fop
-  */
+  delete blockio
+}
 
+function show_io() {
   show_time_("io")
   foreach([name] in io) {
     count = io[name]
@@ -122,7 +139,9 @@ probe timer.sec(1) {
   }
   println()
   delete io
+}
 
+function show_vfs() {
   show_time_("vfs")
   foreach([name] in vfs) {
     count = vfs[name]
@@ -130,8 +149,11 @@ probe timer.sec(1) {
   }
   println()
   delete vfs
+}
 
-  show_time("seeks")
-  printf("count=%lu\n", seeks)
-  seeks = 0
+probe timer.sec(1) {
+  show_cache()
+  show_io()
+  show_vfs()
+  show_blockio()
 }
