@@ -1,5 +1,5 @@
 // global vars
-global hits, misses, io, vfs
+global hits, misses, io
 
 function show_time_(event: string) {
   t = gettimeofday_ns()
@@ -23,29 +23,6 @@ function rwhelper(name: string, devname: string, nbytes: long) {
   }
 }
 
-global rlat, wlat
-global rtim, wtim
-
-probe vfs.read {
-  rlat[tid()] = gettimeofday_ns()
-}
-
-probe vfs.write {
-  wlat[tid()] = gettimeofday_ns()
-}
-
-// bitcoin does not use readv
-probe vfs.read.return {
-  rwhelper("read", devname, $return)
-  rtim <<< gettimeofday_ns() - rlat[tid()]
-}
-
-// bitcoin does not use writev
-probe vfs.write.return {
-  rwhelper("write", devname, $return)
-  wtim <<< gettimeofday_ns() - wlat[tid()]
-}
-
 global fop
 probe generic.fop.* {
   if (pid() == target()) {
@@ -63,10 +40,40 @@ function show_fop() {
   delete fop
 }
 
+global vfscount, vfsstart, vfstime
 probe vfs.* {
-  if (pid() == target()) {
-    vfs[name]++
+  if (pid() != target()) next
+  vfscount[name]++
+  vfsstart[tid(), name] = gettimeofday_ns()
+}
+
+probe vfs.read*.return {
+  rwhelper(name, devname, $return)
+}
+
+probe vfs.write*.return {
+  rwhelper(name, devname, $return)
+}
+
+probe vfs.*.return {
+  if (pid() != target()) next
+  vfstime[name] += gettimeofday_ns() - vfsstart[tid(), name]
+}
+
+function show_vfs() {
+  show_time_("vfs")
+  foreach([name] in vfscount) {
+    printf(" %s=%d", name, vfscount[name])
   }
+  println()
+  delete vfscount
+
+  show_time_("vfstime")
+  foreach([name] in vfstime) {
+    printf(" %s=%d", name, vfstime[name])
+  }
+  println()
+  delete vfstime
 }
 
 probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
@@ -206,34 +213,10 @@ function show_io() {
   delete io
 }
 
-function show_vfs() {
-  show_time_("vfs")
-  foreach([name] in vfs) {
-    count = vfs[name]
-    printf(" %s=%d", name, count)
-  }
-  println()
-  delete vfs
-}
-
-function show_latency() {
-  show_time_("latency")
-  if (@sum(rtim)) {
-    printf(" avgread=%lu", @avg(rtim))
-    delete rtim
-  }
-  if (@sum(wtim)) {
-    printf(" avgwrite=%lu", @avg(wtim))
-    delete wtim
-  }
-  println()
-}
-
-probe timer.sec(1) {
+probe timer.sec(10) {
   show_cache()
   show_io()
   show_vfs()
   show_fop()
-  show_latency()
   show_blockio()
 }
