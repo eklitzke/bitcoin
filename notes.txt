@@ -1,6 +1,0 @@
-sizeof COutPoint=36
-sizeof CCoinsCacheEntry=56
-
-total utxo as of 2018-02-05: 57.3M entries
-
-with no gaps = 5.27G of memory

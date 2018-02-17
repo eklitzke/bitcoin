@@ -1,11 +1,17 @@
 // global vars
-global hits, misses, io
+
+global targetpid
+probe begin {
+  targetpid = target()
+}
+
+@define checkpid %(if (pid() != targetpid) next %)
 
 function show_time_(event: string) {
   t = gettimeofday_ns()
   secs = t / 1000000000
-  micros = t % 1000000000
-  printf("t=%d.%09d event=%s", secs, micros, event)
+  nanos = t % 1000000000
+  printf("t=%d.%09d event=%s", secs, nanos, event)
 }
 
 function show_time(event: string) {
@@ -13,50 +19,38 @@ function show_time(event: string) {
   print(" ")
 }
 
+global io
 function rwhelper(name: string, devname: string, nbytes: long) {
-  if (nbytes > 0 && pid() == target()) {
-    if (devname == "N/A")
-      tag = sprintf("%s.cached", name)
-    else
-      tag = sprintf("%s.uncached", name)
-    io[tag] += nbytes
-  }
-}
-
-global fop
-probe generic.fop.* {
-  if (pid() == target()) {
-    fop[name]++
-  }
-}
-
-function show_fop() {
-  show_time_("fop")
-  foreach([name] in fop) {
-    count = fop[name]
-    printf(" %s=%d", name, count)
-  }
-  println()
-  delete fop
+  if (pid() != targetpid || nbytes == 0)
+    return 1
+  if (devname == "N/A")
+    tag = sprintf("%s.cached", name)
+  else
+    tag = sprintf("%s.uncached", name)
+  io[tag] += nbytes
 }
 
 global vfscount, vfsstart, vfstime
 probe vfs.* {
-  if (pid() != target()) next
+  @checkpid
   vfscount[name]++
   vfsstart[tid(), name] = gettimeofday_ns()
 }
 
+global readfiles
 probe vfs.read*.return {
+  @checkpid
   rwhelper(name, devname, $return)
+  readfiles[pathname] += bytes_to_read
 }
 
 probe vfs.write*.return {
+  @checkpid
   rwhelper(name, devname, $return)
 }
 
 probe vfs.*.return {
-  if (pid() != target()) next
+  @checkpid
   vfstime[name] += gettimeofday_ns() - vfsstart[tid(), name]
 }
 
@@ -74,6 +68,13 @@ function show_vfs() {
   }
   println()
   delete vfstime
+
+  show_time_("vfsread")
+  foreach([name] in readfiles) {
+    printf(" %s=%d", name, readfiles[name])
+  }
+  println()
+  delete readfiles
 }
 
 probe bitcoind = process("/home/evan/code/bitcoin/src/bitcoind") {
@@ -86,11 +87,13 @@ probe bitcoind.mark("cache__flush") {
 }
 
 // record cache hits
+global hits
 probe bitcoind.mark("cache__hit") {
   hits++
 }
 
 // record cache misses
+global misses
 probe bitcoind.mark("cache__miss") {
   misses++
 }
@@ -108,13 +111,6 @@ probe bitcoind.mark("finish__ibd") {
   exit()
 }
 
-/*
-global dbgets
-probe bitcoind.function("CCoinsViewDB::GetCoin") {
-  dbgets++
-}
-*/
-
 probe bitcoind.mark("update__tip") {
   show_time("update_tip")
   printf("height=%lu utxo_count=%lu utxo_memory=%lu ldb_count=%lu progress=0.%06d\n", $arg1, $arg2, $arg3, $arg4, $arg5)
@@ -125,83 +121,11 @@ probe ioblock_trace.request {
   ioreqs++
 }
 
-function show_blockio() {
-  show_time("blockio")
+function show_ioreqs() {
+  show_time("ioreqs")
   printf("reqs=%lu\n", ioreqs)
   ioreqs = 0
 }
-
-
-  /*
-   global oldsec, blockio
-  global bios, biotime
-
-probe kernel.function("generic_make_request") {
-  if (pid() == target()) {
-    bios[$bio] = gettimeofday_ns()
-  }
-}
-
-probe kernel.function("bio_endio") {
-  if (pid() == target()) {
-    t = gettimeofday_ns() - bios[$bio]
-    delete bios[$bio]
-    biotime <<< t
-  }
-}
-
-probe ioblock_trace.request {
-  if (size != 0 && pid() == target()) {
-    if (sector != oldsec) {
-      blockio["seeks"]++
-    }
-    blockio["requests"]++
-    blockio["bytes"] += size
-  }
-
-  //blockreqs[bdev, sector, size] = gettimeofday_ns()
-}
-
-// N.B. This is not called reliably, because the kernel can merge block io
-// requests.
-probe ioblock_trace.end {
-  if (size != 0 && pid() == target()) {
-    sectorsize = (@defined($q->limits->logical_block_size)
-                  ? $q->limits->logical_block_size
-                  : (@defined($q->logical_block_size) ? $q->logical_block_size
-                     : $q->hardsect_size))
-    oldsec = sector + (size/sectorsize)
-    blockio["completed"]++
-  }
-}
-
-global blocktiming, blockreqs
-
-probe ioblock_trace.end {
-  if (size == 0) next
-  if (pid() != target()) next
-  prevtime = blockreqs[bdev, sector, size]
-  if (prevtime) {
-    elapsed = gettimeofday_ns() - blockreqs[bdev, sector, size]
-    blocktiming <<< elapsed
-    delete blockreqs[bdev, sector, size]
-  }
-}
-
-function show_blockio() {
-  show_time_("blockio")
-  foreach([name] in blockio) {
-    count = blockio[name]
-    printf(" %s=%d", name, count)
-  }
-  if (@sum(biotime)) {
-    printf(" avglatency=%lu", @avg(biotime))
-    delete biotime
-  }
-  println()
-  delete blockio
-}
-*/
 
 function show_io() {
   show_time_("io")
@@ -217,6 +141,5 @@ probe timer.sec(10) {
   show_cache()
   show_io()
   show_vfs()
-  show_fop()
-  show_blockio()
+  show_ioreqs()
 }
