@@ -33,6 +33,6 @@ inline void PROBE_CACHE_HIT(void) {}
 inline void PROBE_CACHE_MISS(void) {}
 inline void PROBE_FINISH_IBD(void) {}
 inline void PROBE_CDB_WRITE_BATCH(size_t, bool) {}
-inline void PROBE_UPDATE_TIP(uint32_t, size_t, size_t, size_t, unsigned int) {}
+inline void PROBE_UPDATE_TIP(uint32_t, size_t, size_t, size_t) {}
 #endif // WITH_PROBES
 #endif // BITCOIN_PROBES_H

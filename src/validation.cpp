@@ -2181,11 +2181,10 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
     }
     const double progress = GuessVerificationProgress(chainParams.TxData(), pindexNew);
     if (PROBE_UPDATE_TIP_ENABLED()) {
-        const unsigned int intprog = progress * 1000000;
+        const size_t intprog = progress * 1000000;
         PROBE_UPDATE_TIP(pindexNew->nHeight,
                          pcoinsTip->GetCacheSize(),
                          pcoinsTip->DynamicMemoryUsage(),
-                         pcoinsdbview->EstimateSize(),
                          intprog);
     }
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__,
