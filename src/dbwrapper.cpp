@@ -13,8 +13,6 @@
 #include <stdint.h>
 #include <algorithm>
 
-#include <probes.h>
-
 class CBitcoinLevelDBLogger : public leveldb::Logger {
 public:
     // This code is adapted from posix_logger.h, which is why it is using vsprintf.
@@ -158,9 +156,6 @@ CDBWrapper::~CDBWrapper()
 bool CDBWrapper::WriteBatch(CDBBatch& batch, bool fSync)
 {
     leveldb::Status status = pdb->Write(fSync ? syncoptions : writeoptions, &batch.batch);
-    if (PROBE_CDB_WRITE_BATCH_ENABLED()) {
-        PROBE_CDB_WRITE_BATCH(batch.SizeEstimate(), fSync);
-    }
     dbwrapper_private::HandleError(status);
     return true;
 }
