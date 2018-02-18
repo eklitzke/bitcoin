@@ -69,7 +69,7 @@ class CCoinsViewDB final : public CCoinsView
 protected:
     CDBWrapper db;
 public:
-    explicit CCoinsViewDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
+    explicit CCoinsViewDB(size_t read_cache, size_t write_cache, bool fMemory = false, bool fWipe = false);
 
     bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;

@@ -2010,7 +2010,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
  * or always and in all cases if we're in prune mode and are deleting files.
  */
 bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &state, FlushStateMode mode, int nManualPruneHeight) {
-    int64_t nMempoolUsage = mempool.DynamicMemoryUsage();
     LOCK(cs_main);
     static int64_t nLastWrite = 0;
     static int64_t nLastFlush = 0;
@@ -2048,9 +2047,8 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
         if (nLastSetChain == 0) {
             nLastSetChain = nNow;
         }
-        int64_t nMempoolSizeMax = gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000;
         int64_t cacheSize = pcoinsTip->DynamicMemoryUsage();
-        int64_t nTotalSpace = nCoinCacheUsage + std::max<int64_t>(nMempoolSizeMax - nMempoolUsage, 0);
+        int64_t nTotalSpace = nCoinCacheUsage;
         // The cache is large and we're within 10% and 10 MiB of the limit, but we have time now (not in the middle of a block processing).
         bool fCacheLarge = mode == FLUSH_STATE_PERIODIC && cacheSize > std::max((9 * nTotalSpace) / 10, nTotalSpace - MAX_BLOCK_COINSDB_USAGE * 1024 * 1024);
         // The cache is over the limit, we have to write now.

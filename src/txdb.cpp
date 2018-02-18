@@ -54,7 +54,7 @@ struct CoinEntry {
 
 }
 
-CCoinsViewDB::CCoinsViewDB(size_t nCacheSize, bool fMemory, bool fWipe) : db(GetDataDir() / "chainstate", nCacheSize, fMemory, fWipe, true) 
+CCoinsViewDB::CCoinsViewDB(size_t read_cache, size_t write_cache, bool fMemory, bool fWipe) : db(GetDataDir() / "chainstate", read_cache, write_cache, fMemory, fWipe, true)
 {
 }
 
@@ -82,63 +82,37 @@ std::vector<uint256> CCoinsViewDB::GetHeadBlocks() const {
 }
 
 bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
+    // Note this entire method happens using a single LevelDB batched write,
+    // which is an atomic operation. There's no race condition here where a
+    // crash in the middle of this code can put the chainstate database in an
+    // inconsistent state.
     CDBBatch batch(db);
-    size_t count = 0;
-    size_t changed = 0;
-    size_t batch_size = (size_t)gArgs.GetArg("-dbbatchsize", nDefaultDbBatchSize);
-    int crash_simulate = gArgs.GetArg("-dbcrashratio", 0);
     assert(!hashBlock.IsNull());
 
-    uint256 old_tip = GetBestBlock();
-    if (old_tip.IsNull()) {
-        // We may be in the middle of replaying.
-        std::vector<uint256> old_heads = GetHeadBlocks();
-        if (old_heads.size() == 2) {
-            assert(old_heads[0] == hashBlock);
-            old_tip = old_heads[1];
-        }
-    }
-
-    // In the first batch, mark the database as being in the middle of a
-    // transition from old_tip to hashBlock.
-    // A vector is used for future extensibility, as we may want to support
-    // interrupting after partial writes from multiple independent reorgs.
-    batch.Erase(DB_BEST_BLOCK);
-    batch.Write(DB_HEAD_BLOCKS, std::vector<uint256>{hashBlock, old_tip});
-
-    for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end();) {
-        if (it->second.flags & CCoinsCacheEntry::DIRTY) {
-            CoinEntry entry(&it->first);
-            if (it->second.coin.IsSpent())
-                batch.Erase(entry);
-            else
-                batch.Write(entry, it->second.coin);
-            changed++;
-        }
-        count++;
-        CCoinsMap::iterator itOld = it++;
-        mapCoins.erase(itOld);
-        if (batch.SizeEstimate() > batch_size) {
-            LogPrint(BCLog::COINDB, "Writing partial batch of %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
-            db.WriteBatch(batch);
-            batch.Clear();
-            if (crash_simulate) {
-                static FastRandomContext rng;
-                if (rng.randrange(crash_simulate) == 0) {
-                    LogPrintf("Simulating a crash. Goodbye.\n");
-                    _Exit(0);
-                }
-            }
-        }
-    }
-
-    // In the last batch, mark the database as consistent with hashBlock again.
-    batch.Erase(DB_HEAD_BLOCKS);
+    // Update our best block.
     batch.Write(DB_BEST_BLOCK, hashBlock);
 
-    LogPrint(BCLog::COINDB, "Writing final batch of %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
+    size_t changed = 0;
+    for (const auto &pr : mapCoins) {
+        if (pr.second.flags & CCoinsCacheEntry::DIRTY) {
+            CoinEntry entry(&pr.first);
+            if (pr.second.coin.IsSpent())
+                batch.Erase(entry);
+            else
+                batch.Write(entry, pr.second.coin);
+            changed++;
+        }
+    }
+
+    // TODO: We should check the return result of WriteBatch, but it always
+    // returns true...
+    size_t count = mapCoins.size();
+    mapCoins.clear();
+
+    // Flush the entire batch out to disk.
+    LogPrint(BCLog::COINDB, "Writing utxo batch with size %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
     bool ret = db.WriteBatch(batch);
-    LogPrint(BCLog::COINDB, "Committed %u changed transaction outputs (out of %u) to coin database...\n", (unsigned int)changed, (unsigned int)count);
+    LogPrint(BCLog::COINDB, "Committed %zd changed transaction outputs (out of %zd) to coin database...\n", changed, count);
     return ret;
 }
 
@@ -147,7 +121,7 @@ size_t CCoinsViewDB::EstimateSize() const
     return db.EstimateSize(DB_COIN, (char)(DB_COIN+1));
 }
 
-CBlockTreeDB::CBlockTreeDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "blocks" / "index", nCacheSize, fMemory, fWipe) {
+CBlockTreeDB::CBlockTreeDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "blocks" / "index", nCacheSize, nCacheSize, fMemory, fWipe) {
 }
 
 bool CBlockTreeDB::ReadBlockFileInfo(int nFile, CBlockFileInfo &info) {
