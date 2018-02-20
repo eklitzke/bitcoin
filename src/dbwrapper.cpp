@@ -71,6 +71,33 @@ public:
     }
 };
 
+constexpr int PermissibleMaxOpenFiles() {
+#ifdef _POSIX_C_SOURCE
+    // LevelDB uses mmap() to open read-only files on 64-bit POSIX systems. It
+    // reserves 10 file descriptors for itself, and the rest of the
+    // max_open_files limit is used to configure an LRU for a TableCache object
+    // that stores file handles.
+    //
+    // On 64-bit POSIX systems the entries in the TableCache are allocated as
+    // handles to read-only mmap'ed files. POSIX requires that read-only
+    // file-backed mmap regions remain valid when the underlying file handle is
+    // closed, and this is exactly what LevelDB does on such systems. Therefore
+    // if we're on a 64-bit POSIX system we can set max_open_files very high,
+    // and it won't count against our file descriptor limits. In fact, on such
+    // systems the only overhead of setting a large value for max_open_files is
+    // the memory used by the additional PTEs (which is minimal). Keeping these
+    // files open also helps the kernel know that these are pages it should try
+    // to keep in its page cache, since the kernel can see that pages in these
+    // files are mapped into a running process.
+    //
+    // LevelDB has a hard-coded limit of 1000 mmaped-files, so increasing the
+    // value of max_open_files beyond this is not effective.
+    return sizeof(void*) >= 8 ? 1000 : 64;
+#else
+    return 64;
+#endif
+}
+
 static leveldb::Options GetOptions(size_t nCacheSize)
 {
     leveldb::Options options;
@@ -78,7 +105,7 @@ static leveldb::Options GetOptions(size_t nCacheSize)
     options.write_buffer_size = nCacheSize / 4; // up to two write buffers may be held in memory simultaneously
     options.filter_policy = leveldb::NewBloomFilterPolicy(10);
     options.compression = leveldb::kNoCompression;
-    options.max_open_files = 64;
+    options.max_open_files = PermissibleMaxOpenFiles();
     options.info_log = new CBitcoinLevelDBLogger();
     if (leveldb::kMajorVersion > 1 || (leveldb::kMajorVersion == 1 && leveldb::kMinorVersion >= 16)) {
         // LevelDB versions before 1.16 consider short writes to be corruption. Only trigger error
