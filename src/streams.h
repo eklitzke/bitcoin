@@ -349,7 +349,7 @@ public:
         if (nReadPosNext > vch.size()) {
             throw std::ios_base::failure("CDataStream::read(): end of data");
         }
-        memcpy(pch, &vch[nReadPos], nSize);        
+        memcpy(pch, &vch[nReadPos], nSize);
         if (nReadPosNext == vch.size())
         {
             nReadPos = 0;
@@ -437,14 +437,6 @@ public:
 };
 
 
-
-
-
-
-
-
-
-
 /** Non-refcounted RAII wrapper for FILE*
  *
  * Will automatically close the file when it goes out of scope if not null.
@@ -457,18 +449,14 @@ private:
     const int nType;
     const int nVersion;
 
-    FILE* file;	
+    FILE* file;
+
+    bool m_discard_on_close;
 
 public:
-    CAutoFile(FILE* filenew, int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn)
-    {
-        file = filenew;
-    }
+    CAutoFile(FILE* filenew, int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn), file(filenew), m_discard_on_close(false) {}
 
-    ~CAutoFile()
-    {
-        fclose();
-    }
+    ~CAutoFile() { fclose(); }
 
     // Disallow copies
     CAutoFile(const CAutoFile&) = delete;
@@ -477,7 +465,7 @@ public:
     void fclose()
     {
         if (file) {
-            ::fclose(file);
+            m_discard_on_close ? CloseAndDiscard(file) : ::fclose(file);
             file = nullptr;
         }
     }
@@ -552,6 +540,8 @@ public:
         ::Unserialize(*this, obj);
         return (*this);
     }
+
+    void DiscardOnClose() { m_discard_on_close = true; }
 };
 
 /** Non-refcounted RAII wrapper around a FILE* that implements a ring buffer to
