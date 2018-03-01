@@ -766,6 +766,18 @@ AC_ARG_ENABLE([systemtap],
   [enable_systemtap=$try_systemtap])
 AC_MSG_RESULT($enable_systemtap)
 
+dnl FIXME: this isn't used yet
+AC_ARG_WITH([tapset-install-dir],
+  [AS_HELP_STRING([--with-tapset-install-dir],
+                  [The absolute path where the tapset dir will be installed])],
+  [if test "x${withval}" = x; then
+     ABS_TAPSET_DIR="\$(datadir)/systemtap/tapset"
+   else
+     ABS_TAPSET_DIR="${withval}"
+   fi],
+  [ABS_TAPSET_DIR="\$(datadir)/systemtap/tapset"])
+AC_SUBST(ABS_TAPSET_DIR)
+
 dnl Check for dtrace(1)
 if test x$enable_systemtap != xno; then
   AC_CHECK_PROGS([DTRACE], [dtrace])

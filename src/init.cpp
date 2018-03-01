@@ -1231,9 +1231,8 @@ bool AppInitMain()
     LogPrintf("Using data directory %s\n", datadir);
     LogPrintf("Using config file %s\n", configpath);
     LogPrintf("Using at most %i automatic connections (%i file descriptors available)\n", nMaxConnections, nFD);
-    if (PROBE_INIT_MAIN_ENABLED()) {
+    if (PROBE_INIT_MAIN_ENABLED())
         PROBE_INIT_MAIN(datadir, configpath);
-    }
 
     // Warn about relative -datadir path.
     if (gArgs.IsArgSet("-datadir") && !fs::path(gArgs.GetArg("-datadir", "")).is_absolute()) {
