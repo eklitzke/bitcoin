@@ -1,9 +1,23 @@
-# Bitcoin Systemtap Probes
+# Using SystemTap With Bitcoin
 
-Bitcoin can be built on Linux hosts with SystemTap probes. This is primarily
-useful for developers working on the Bitcoin source code who want to do
-low-level performance testing or analysis of the internals of Bitcoin, e.g.
-access to mutexes or evaluating what the glibc memory allocator is doing.
+SystemTap is a Linux project analogous to DTrace. You write code in the
+SystemTap scripting language, and it gets compiled to native code that runs in
+the Linux kernel. The SystemTap language is powerful and allows you to use
+programming constructs like loops, functions, hash tables, etc. Scripts register
+callbacks that are triggered by userspace or kernel probe points, or events like
+timers. Probe points added to userspace applications like Bitcoin incur an
+overhead of only about 2-3 CPU cycles when the probe is not actively being used.
+This makes probes a scalable way of add profiling events to userspace
+applications, and can often be left in. For a general overview of SystemTap,
+refer to the [SystemTap wiki](https://sourceware.org/systemtap/wiki).
+
+Bitcoin can be built on Linux hosts with SystemTap probes. If a Bitcoin build is
+not SystemTap-enabled (i.e. the default), all of the probe points become no-ops
+and are eliminated by the compiler. Building Bitcoin with SystemTap probes is
+primarily useful for developers working on the Bitcoin source code who want to
+do low-level performance testing or analysis of the internals of Bitcoin, e.g.
+to evaluate access of mutexes or to evaluate the interaction between Bitcoin
+code and the glibc memory allocator.
 
 First make sure you have a SystemTap enabled build. Information about creating a
 SystemTap enabled build can be found in the [Unix build docs](build-unix.md).
@@ -25,7 +39,7 @@ SystemTap requests. To add yourself to all three groups:
 ```bash
 # Add yourself to all stap groups.
 for grp in stap{dev,usr,sys}; do
-    sudo gpasswd -a $USER $grp
+  sudo gpasswd -a $USER $grp
 done
 ```
 
@@ -73,7 +87,11 @@ process("/usr/bin/bitcoind").mark("update_tip") $arg1:long $arg2:long $arg3:long
 The following is a "Hello World" example for Bitcoin. You can find the following
 script in `contrib/systemtap/helloworld.stp`:
 
-```systemtap
+```stap
+probe begin {
+  println("Attached to bitcoind process")
+}
+
 probe process("./src/bitcoind").mark("init_main") {
   datadir = user_string($arg1)
   config = user_string($arg2)
@@ -83,6 +101,10 @@ probe process("./src/bitcoind").mark("init_main") {
 probe process("./src/bitcoind").mark("update_tip") {
   height = $arg1
   printf("UpdateTip for new block at height %d\n", height)
+}
+
+probe process("./src/bitcoind").mark("finish_ibd") {
+  println("IBD finished")
 }
 ```
 
