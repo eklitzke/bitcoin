@@ -189,7 +189,8 @@ probes.o: probes.d
 
 else
 probes.h: probes.d
-	@$(top_srcdir)/share/genprobes.sh "$(abs_top_builddir)/src/probes.d" $@
+	$(AM_V_GEN) $(abs_top_srcdir)/share/genprobes.sh "$(abs_top_builddir)/src/probes.d" $@
+
 LIBBITCOIN_PROBES=
 endif
 

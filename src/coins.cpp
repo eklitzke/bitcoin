@@ -41,14 +41,12 @@ size_t CCoinsViewCache::DynamicMemoryUsage() const {
 CCoinsMap::iterator CCoinsViewCache::FetchCoin(const COutPoint &outpoint) const {
     CCoinsMap::iterator it = cacheCoins.find(outpoint);
     if (it != cacheCoins.end()) {
-        if (PROBE_CACHE_HIT_ENABLED() && m_enable_probing) {
+        if (PROBE_CACHE_HIT_ENABLED() && m_enable_probing)
             PROBE_CACHE_HIT();
-        }
         return it;
     }
-    if (PROBE_CACHE_MISS_ENABLED() && m_enable_probing) {
+    if (PROBE_CACHE_MISS_ENABLED() && m_enable_probing)
         PROBE_CACHE_MISS();
-    }
     Coin tmp;
     if (!base->GetCoin(outpoint, tmp))
         return cacheCoins.end();
@@ -209,9 +207,8 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn
 }
 
 bool CCoinsViewCache::Flush() {
-    if (PROBE_CACHE_FLUSH_ENABLED() && m_enable_probing) {
+    if (PROBE_CACHE_FLUSH_ENABLED() && m_enable_probing)
         PROBE_CACHE_FLUSH(cacheCoins.size(), DynamicMemoryUsage());
-    }
     bool fOk = base->BatchWrite(cacheCoins, hashBlock);
     cacheCoins.clear();
     cachedCoinsUsage = 0;

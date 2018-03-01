@@ -7,6 +7,9 @@ SUBDIRS = src
 if ENABLE_MAN
 SUBDIRS += doc/man
 endif
+#if ENABLE_SYSTEMTAP
+#SUBDIRS += share/systemtap
+#endif
 .PHONY: deploy FORCE
 
 export PYTHONPATH
@@ -46,6 +49,7 @@ DIST_CONTRIB = $(top_srcdir)/contrib/bitcoin-cli.bash-completion \
 	       $(top_srcdir)/contrib/rpm
 DIST_SHARE = \
   $(top_srcdir)/share/genbuild.sh \
+  $(top_srcdir)/share/genprobes.sh \
   $(top_srcdir)/share/rpcauth
 
 BIN_CHECKS=$(top_srcdir)/contrib/devtools/symbol-check.py \

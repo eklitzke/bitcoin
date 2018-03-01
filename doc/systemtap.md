@@ -19,12 +19,19 @@ do low-level performance testing or analysis of the internals of Bitcoin, e.g.
 to evaluate access of mutexes or to evaluate the interaction between Bitcoin
 code and the glibc memory allocator.
 
-First make sure you have a SystemTap enabled build. Information about creating a
-SystemTap enabled build can be found in the [Unix build docs](build-unix.md).
-
 ## The Basics
 
-To actually use SystemTap at a minimum you should be in the `stapusr` group:
+First make sure you have a SystemTap enabled build. Information about creating a
+SystemTap enabled build can be found in the [Unix build
+docs](build-unix.md#systemtap-probes).
+
+### Giving Yourself SystemTap Permissions
+
+Once you have a build with SystemTap probes, you'll need to make sure your
+account is configured to actually let you use SystemTap. This is required
+because SystemTap scripts run in a kernel context, and therefore unprivileged
+users are not allowed to execute SystemTap scripts. At a minimum you should be
+in the `stapusr` group:
 
 ```bash
 # Add yourself to the stapusr group.
@@ -55,106 +62,173 @@ satoshi wheel stapusr stapsys stapdev  # etc.
 
 ### Kernel Headers
 
-You need kernel headers installed to run SystemTap scripts:
+Because SystemTap scripts are compiled into kernel modules, you must have kernel
+headers installed to run SystemTap scripts:
 
 ```bash
-# Debian/Ubuntu.
+# Debian/Ubuntu
 sudo apt-get install linux-headers-`uname -r`
 
-# Fedora.
+# Fedora
 sudo dnf install kernel-headers
 ```
 
-### Listing Bitcoin Probes
+## An Example Bitcoin SystemTap Script
 
-You can generally use `stap -L` to inspect what probes are available in a file,
-and what arguments they provide. The following command should list SystemTap
-probes (update the path to `bitcoind` as necessary):
+The SystemTap language is a curly-brace language that C programmers should feel
+at home in. The following is a simple example showing a simple (but interesting)
+script that interact with Bitcoin probe points. This script registers callbacks
+that run when:
 
-```bash
-$ stap -L 'process("/usr/bin/bitcoind").mark("*")'
-process("/usr/bin/bitcoind").mark("cache_flush") $arg1:long $arg2:long
-process("/usr/bin/bitcoind").mark("cache_hit")
-process("/usr/bin/bitcoind").mark("cache_miss")
-process("/usr/bin/bitcoind").mark("finish_ibd")
-process("/usr/bin/bitcoind").mark("init_main") $arg1:long $arg2:long
-process("/usr/bin/bitcoind").mark("read_block_from_disk") $arg1:long $arg2:long
-process("/usr/bin/bitcoind").mark("update_tip") $arg1:long $arg2:long $arg3:long $arg4:long
+ * `AppInitMain()` starts
+ * `UpdateTip()` finds a new block at the tip
+ * `IsInitialBlockDownload()` latches to false
+
+The demo script can be found at `share/systemtap/demo.stp`, and is also
+reproduced below:
+
 ```
+global start_time
 
-## A Simple Bitcoin SystemTap Script
+// Return relative time since the process was attached.
+function timestr:string () {
+  t = gettimeofday_us() - start_time
+  secs = t / 1000000
+  micros = t % 1000000
+  return sprintf("%lu.%06lu", secs, micros)
+}
 
-The following is a "Hello World" example for Bitcoin. You can find the following
-script in `contrib/systemtap/helloworld.stp`:
-
-```stap
+// Run once when SystemTap attaches to the process.
 probe begin {
-  println("Attached to bitcoind process")
+  start_time = gettimeofday_us()
+  printf("%s Attached to bitcoind process\n", timestr())
 }
 
-probe process("./src/bitcoind").mark("init_main") {
-  datadir = user_string($arg1)
-  config = user_string($arg2)
-  printf("AppInitMain with datadir=%s, config=%s\n", datadir, config);
+// Executed when AppInitMain() starts.
+probe bitcoin.init_main {
+  printf("%s AppInitMain with datadir=%s, config=%s\n", timestr(), datadir, config);
 }
 
-probe process("./src/bitcoind").mark("update_tip") {
-  height = $arg1
-  printf("UpdateTip for new block at height %d\n", height)
+// Executed by UpdateTip() for each new block.
+probe bitcoin.update_tip {
+  comment = ""
+  if (height == 0)
+    comment = " (genesis)"
+  printf("%s UpdateTip: new block %s at height %d%s\n", timestr(), block, height, comment)
 }
 
-probe process("./src/bitcoind").mark("finish_ibd") {
-  println("IBD finished")
+// Executed when IsInitialBlockDownload() latches to false.
+probe bitcoin.finish_ibd {
+  printf("%s IBD finished\n", timestr())
 }
 ```
 
-**Important:** The path to `bitcoind` in the script must be an absolute path, or
-be a valid relative path for your current working directory. SystemTap scripts
-can be parameterized to with command line arguments, but this doesn't apply to
-`process()` statements due to an idiosyncrasy in how the scripts are compiled.
-
-Assuming you're using `./src/bitcoind` as your path, you should see output
-similar to the following when launching bitcoind in regtest mode:
+This script takes advantage of the Bitcoin tapset defined in
+`share/systemtap/tapset`, which provides aliases and names for the probe points
+and their parameters. Assuming you're working out of the root directory of the
+Bitcoin project, you can trace `bitcoind` in regtest mode using the following
+commands:
 
 ```bash
-# Use stap to trace bitcoind in regtest/foreground mode.
-$ stap -c "./src/bitcoind -regtest -daemon=0" ./contrib/systemtap/helloworld.stp
-AppInitMain started with datadir=/home/evan/.bitcoin/regtest, config=/home/evan/.bitcoin/bitcoin.conf
+# XXX: Required for local development, see "Bitcoin Tapset" below.
+$ . share/systemtap/activate.sh
+
+# You should see bitcoin tapset probes when running this.
+$ stap -L 'bitcoin.*'
+bitcoin.cache_flush coins:long bytes:long $arg1:long $arg2:long
+bitcoin.cache_hit
+bitcoin.cache_miss
+...
+
+# Use stap to trace bitcoind in regtest mode.
+$ stap -c "bitcoind -regtest" share/systemtap/demo.stp
+0.000000 Attached to bitcoind process
+0.036602 AppInitMain with datadir=/home/evan/.bitcoin/regtest, config=/home/evan/.bitcoin/bitcoin.conf
+0.785688 UpdateTip: new block 0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206 at height 0 (genesis)
 ```
 
 If you have a wallet-enabled build you can use the `generate` RPC to create new
-blocks, which will cause the `stap` terminal to print UpdateTip messages:
+blocks:
 
 ```bash
 # Generate coins in another terminal.
-$ ./src/bitcoin-cli -regtest generate 10
+$ bitcoin-cli -regtest generate 5
+[
+  "0cf14192cab9c8c84ae26b4765ef0c3ea879fb61f0d02820f640bd72976ebfe2",
+  "4c5b6282ceea0f3d72afdc3d828230ddc5cfba6118aa25a31e201f4f908d968e",
+  "52265017f9658fd54bf1324e455253b14165c9db137a83463c1f1e59d42c88ca",
+  "6c5fe60d657d47b7e6502cf55f232f58cd40b6b202a0f561eb58a9ec50ae6f2b",
+  "7db8d490b36627a432879bc9799310ec3bb11194b38710e0d497f2fe96119852"
+]
 ```
 
-In the terminal running `stap` you'll see output that looks like this:
+In the terminal running `stap` you'll see output indicating that IBD has
+completed, and UpdateTip events:
 
-```
-UpdateTip for new block at height 1
-UpdateTip for new block at height 2
-UpdateTip for new block at height 3
-UpdateTip for new block at height 4
-UpdateTip for new block at height 5
-UpdateTip for new block at height 6
-UpdateTip for new block at height 7
-UpdateTip for new block at height 8
-UpdateTip for new block at height 9
-UpdateTip for new block at height 10
+```bash
+# Output seen in the original stap terminal.
+5.068598 IBD finished
+5.068626 UpdateTip: new block 0cf14192cab9c8c84ae26b4765ef0c3ea879fb61f0d02820f640bd72976ebfe2 at height 1
+5.070004 UpdateTip: new block 4c5b6282ceea0f3d72afdc3d828230ddc5cfba6118aa25a31e201f4f908d968e at height 2
+5.070999 UpdateTip: new block 52265017f9658fd54bf1324e455253b14165c9db137a83463c1f1e59d42c88ca at height 3
+5.071802 UpdateTip: new block 6c5fe60d657d47b7e6502cf55f232f58cd40b6b202a0f561eb58a9ec50ae6f2b at height 4
+5.072559 UpdateTip: new block 7db8d490b36627a432879bc9799310ec3bb11194b38710e0d497f2fe96119852 at height 5
 ```
 
 You can also use `stap -x PID` to remotely attach to a process. This is useful
 if you're running `bitcoind` in daemon mode.
+
+### Bitcoin Tapset
+
+There's an initial tapset defined at `share/systemtap/tapset/bitcoin.stp`. The
+idea is to provide a simplified tapset which abstracts the low-level bits. It's
+very incomplete, and doesn't properly rename arguments.You can list probe points
+in the tapset using `stap -L 'bitcoin.*'`.
+
+**Note For Local Development**: The tapset defines probes for the target
+`process("bitcoind")`. The parameter to `process()` must either be an absolute
+path, or an executable that can be found by search `$PATH`. This isn't a problem
+if you've actually installed things with `make install`, but can be inconvenient
+if you're accustomed to working out of the root of the Bitcoin source tree.
+
+There is a helper script at `share/systemtap/activate.sh`. When sourced, it adds
+`$PWD/src` to `$PATH` and sets and exports `SYSTEMTAP_TAPSET`. If you're
+uncomfortable doing this, you can always use `-I share/systemtap/tapset` when
+invoking `stap` to add the tapset directory to the `stap` search path. With
+regard to locating your local `bitcoind` executable, any of the following
+techniques will work:
+
+ * Change your working directory to `src/` when running `stap` commands
+ * Temporarily add the `src/` directory at the front of `$PATH`
+ * Temporarily change the `@BITCOIND` macro defined in
+   `share/systemtap/tapset/bitcoin.stp` to use a different executable target,
+   such as `src/bitcoind`
+
+If you have an incorrect configuration, the `stap` error messages will look like this:
+
+```
+$ stap -I ./share/systemtap/tapset -c "./src/bitcoind -regtest" ./share/systemtap/demo.stp 
+semantic error: while resolving probe point: identifier 'process' at ./share/systemtap/tapset/bitcoin.stp:14:27
+        source: probe bitcoin.init_main = process(@BITCOIND).mark("init_main") {
+                                          ^
+
+semantic error: cannot find executable 'bitcoind'
+
+semantic error: while resolving probe point: identifier 'bitcoin' at ./share/systemtap/demo.stp:18:7
+        source: probe bitcoin.init_main {
+                      ^
+
+semantic error: no match
+```
 
 ## Adding New Probe Points
 
 Adding a new probe point is simple. Edit the file `src/probes.d` and add a new
 probe definition, e.g.:
 
-```
-provider bitcoin {
+```dtrace
+provider bitcoin
+{
   ...
   probe hello_world();  // our new probe
 };
@@ -169,15 +243,9 @@ macros:
 In general the pattern you'll see in the code is like this:
 
 ```c
-// XXX: Braces guarding this if statement are important.
-if (PROBE_HELLO_WORLD_ENABLED()) {
+if (PROBE_HELLO_WORLD_ENABLED())
     PROBE_HELLO_WORLD();
-}
 ```
-
-You should use braces to guard the `if` body because the `PROBE_HELLO_WORLD()`
-macro will expand to nothing when SystemTap is disabled. **TODO**: Come up with
-a better no-op macro to avoid requiring braces.
 
 The `src/probes.h` header file itself is generated in one of two ways:
 
@@ -185,13 +253,11 @@ The `src/probes.h` header file itself is generated in one of two ways:
    [dtrace(1)](https://sourceware.org/systemtap/man/dtrace.1.html)
  * If SystemTap is disabled, it's generated from `share/genprobes.sh`
 
-
-## Bitcoin Tapset
-
-**TODO**: When this branch is done there will be a Bitcoin tapset which provides
-a simplified API to the SystemTap markers, including things like named arguments
-(instead of `$arg1`, `$arg2`, etc.). This is not yet finished, so for now you
-need to explicitly name the markers in your stap scripts.
+After adding a new probe point it's a good practice to rebuild Bitcoin with
+`--disable-systemtap` to make sure there are no errors when probes are disabled.
+If you're switching back and forth between systemtap enabled/disabled builds,
+you may need to force relinking by deleting the executables/object files before
+running `make`.
 
 ## Advanced SystemTap Topics
 
