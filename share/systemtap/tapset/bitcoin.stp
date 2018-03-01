@@ -3,46 +3,34 @@
 // Path of the bitcoind executable.
 @define BITCOIND
 %(
-  "./src/bitcoind"
+  "bitcoind"
 %)
 
-probe bitcoin = process(@BITCOIND) {}
-
-probe bitcoin.init_main = bitcoin.mark("init_main") {
+probe bitcoin.init_main = process(@BITCOIND).mark("init_main") {
   datadir = user_string($arg1)
   config = user_string($arg2)
-  probestr = sprintf("%s(datadir=%d, config=%d)", $$name, datadir, config)
 }
 
-probe bitcoin.cache_flush = bitcoin.mark("cache_flush") {
+probe bitcoin.cache_flush = process(@BITCOIND).mark("cache_flush") {
   coins = $arg1
   bytes = $arg2
-  probestr = sprintf("%s(coins=%d, bytes=%d)", $$name, coins, bytes)
 }
 
-probe bitcoin.cache_hit = bitcoin.mark("cache_hit") {
-  probestr = sprintf("%s()", $$name)
-}
+probe bitcoin.cache_hit = process(@BITCOIND).mark("cache_hit") {}
 
-probe bitcoin.cache_miss = bitcoin.mark("cache_miss") {
-  probestr = sprintf("%s()", $$name)
-}
+probe bitcoin.cache_miss = process(@BITCOIND).mark("cache_miss") {}
 
-probe bitcoin.finish_ibd = bitcoin.mark("finish_ibd") {
-  probestr = sprintf("%s()", $$name)
-}
+probe bitcoin.finish_ibd = process(@BITCOIND).mark("finish_ibd") {}
 
-probe bitcoin.read_block_from_disk = bitcoin.mark("read_block_from_disk") {
+probe bitcoin.read_block_from_disk = process(@BITCOIND).mark("read_block_from_disk") {
   height = $arg1
   filenum = $arg2
-  probestr = sprintf("%s(height=%d, filenum=%d)", $$name, height, filenum)
 }
 
-probe bitcoin.update_tip = bitcoin.mark("update_tip") {
+probe bitcoin.update_tip = process(@BITCOIND).mark("update_tip") {
   block = user_string($arg1)
   height = $arg2
   cache_size = $arg3
   cache_bytes = $arg4
   progress = $arg5
-  probestr = sprintf("%s(block=%s, height=%d, cache_size=%d, cache_bytes=%d, progress=%d)", $$name, block, height, cache_size, cache_bytes, progress)
 }
