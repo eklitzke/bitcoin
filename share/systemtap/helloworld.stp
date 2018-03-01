@@ -1,3 +1,7 @@
+probe begin {
+  println("Attached to bitcoind process")
+}
+
 probe process("./src/bitcoind").mark("init_main") {
   datadir = user_string($arg1)
   config = user_string($arg2)
@@ -7,4 +11,8 @@ probe process("./src/bitcoind").mark("init_main") {
 probe process("./src/bitcoind").mark("update_tip") {
   height = $arg1
   printf("UpdateTip for new block at height %d\n", height)
+}
+
+probe process("./src/bitcoind").mark("finish_ibd") {
+  println("IBD finished")
 }
