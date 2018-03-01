@@ -7,9 +7,9 @@ SUBDIRS = src
 if ENABLE_MAN
 SUBDIRS += doc/man
 endif
-if ENABLE_SYSTEMTAP
-SUBDIRS += share/systemtap
-endif
+#if ENABLE_SYSTEMTAP
+#SUBDIRS += share/systemtap
+#endif
 .PHONY: deploy FORCE
 
 export PYTHONPATH
