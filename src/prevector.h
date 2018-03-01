@@ -202,7 +202,7 @@ private:
             // The most common use of prevector is where T=unsigned char. For
             // trivially constructible types, we can use memset() to avoid
             // looping.
-            ::memset(dst, 0, count * sizeof(T));
+            ::memset((void*)dst, 0, count * sizeof(T));
         } else {
             for (auto i = 0; i < count; ++i) {
                 new(static_cast<void*>(dst + i)) T();
