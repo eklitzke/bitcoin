@@ -75,17 +75,18 @@ public:
 static leveldb::Options GetOptions(size_t nCacheSize)
 {
     leveldb::Options options;
-    options.block_cache = leveldb::NewLRUCache(nCacheSize / 2);
-    options.write_buffer_size = nCacheSize / 4; // up to two write buffers may be held in memory simultaneously
+    options.write_buffer_size = nCacheSize / 2;
     options.filter_policy = leveldb::NewBloomFilterPolicy(10);
     options.compression = leveldb::kNoCompression;
-    options.max_open_files = 64;
     options.info_log = new CBitcoinLevelDBLogger();
+    options.max_open_files = 1000; // FIXME
     if (leveldb::kMajorVersion > 1 || (leveldb::kMajorVersion == 1 && leveldb::kMinorVersion >= 16)) {
         // LevelDB versions before 1.16 consider short writes to be corruption. Only trigger error
         // on corruption in later versions.
         options.paranoid_checks = true;
     }
+    LogPrintf("Created LevelDB database with write_buffer_size=%.1fMiB\n",
+              options.write_buffer_size/1024./1024.);
     return options;
 }
 

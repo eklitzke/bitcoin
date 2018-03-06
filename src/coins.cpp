@@ -4,6 +4,7 @@
 
 #include <coins.h>
 #include <probes.h>
+#include <txdb.h>
 
 #include <consensus/consensus.h>
 #include <random.h>
@@ -32,7 +33,8 @@ size_t CCoinsViewBacked::EstimateSize() const { return base->EstimateSize(); }
 
 SaltedOutpointHasher::SaltedOutpointHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
 
-CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), cachedCoinsUsage(0), m_enable_probing(false) {}
+CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn, size_t capacity)
+    : CCoinsViewBacked(baseIn), cachedCoinsUsage(0), m_enable_probing(false), m_capacity(capacity) {}
 
 size_t CCoinsViewCache::DynamicMemoryUsage() const {
     return memusage::DynamicUsage(cacheCoins) + cachedCoinsUsage;
@@ -210,7 +212,7 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn
 
 bool CCoinsViewCache::Flush() {
     if (PROBE_COIN_CACHE_FLUSH_ENABLED() && m_enable_probing)
-        PROBE_COIN_CACHE_FLUSH(cacheCoins.size(), DynamicMemoryUsage());
+        PROBE_COIN_CACHE_FLUSH(cacheCoins.size(), DynamicMemoryUsage(), m_capacity);
     bool fOk = base->BatchWrite(cacheCoins, hashBlock);
     cacheCoins.clear();
     cachedCoinsUsage = 0;
@@ -252,6 +254,19 @@ bool CCoinsViewCache::HaveInputs(const CTransaction& tx) const
         }
     }
     return true;
+}
+
+bool CCoinsViewCache::AlmostFull(size_t size_hint) const {
+    if (!m_capacity)
+        return false;
+    const size_t nearly_full_capacity = m_capacity * 0.9;
+    return (size_hint ? size_hint : DynamicMemoryUsage()) > nearly_full_capacity;
+}
+
+bool CCoinsViewCache::IsFull(size_t size_hint) const {
+    if (!m_capacity)
+        return false;
+    return (size_hint ? size_hint : DynamicMemoryUsage()) > m_capacity;
 }
 
 static const size_t MIN_TRANSACTION_OUTPUT_WEIGHT = WITNESS_SCALE_FACTOR * ::GetSerializeSize(CTxOut(), SER_NETWORK, PROTOCOL_VERSION);

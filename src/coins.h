@@ -212,7 +212,7 @@ protected:
     mutable size_t cachedCoinsUsage;
 
 public:
-    CCoinsViewCache(CCoinsView *baseIn);
+    CCoinsViewCache(CCoinsView *baseIn, size_t capacity = 0);
 
     /**
      * By deleting the copy constructor, we prevent accidentally using it when one intends to create a cache on top of a base cache.
@@ -296,9 +296,13 @@ public:
     //! Enable probes, should only be used by pcoinsTip!
     inline void EnableProbing() { m_enable_probing = true; }
 
+    bool AlmostFull(size_t size_hint = 0) const;
+    bool IsFull(size_t size_hint = 0) const;
+
 private:
     CCoinsMap::iterator FetchCoin(const COutPoint &outpoint) const;
     bool m_enable_probing;
+    size_t m_capacity;
 };
 
 //! Utility function to add all of a transaction's outputs to a cache.
