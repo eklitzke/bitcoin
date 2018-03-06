@@ -106,7 +106,7 @@ Status ReadBlock(RandomAccessFile* file,
         delete[] buf;
         result->data = Slice(data, n);
         result->heap_allocated = false;
-        result->cachable = false;  // Do not double-cache
+        result->cachable = true;  // *DO* cache
       } else {
         result->data = Slice(buf, n);
         result->heap_allocated = true;
