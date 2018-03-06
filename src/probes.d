@@ -3,7 +3,7 @@
 provider bitcoin
 {
     probe init_main(string datadir, string configpath);
-    probe cache_flush(size_t num_coins, size_t num_bytes);
+    probe cache_flush(size_t num_coins, size_t num_bytes, size_t capacity);
     probe cache_hit();
     probe cache_miss();
     probe finish_ibd();

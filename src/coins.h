@@ -296,9 +296,15 @@ public:
     //! Enable probes, should only be used by pcoinsTip!
     inline void EnableProbing() { m_enable_probing = true; }
 
+    void SetCapacity(size_t capacity) { m_capacity = capacity; }
+
+    bool AlmostFull(size_t size_hint = 0) const;
+    bool IsFull(size_t size_hint = 0) const;
+
 private:
     CCoinsMap::iterator FetchCoin(const COutPoint &outpoint) const;
     bool m_enable_probing;
+    size_t m_capacity;
 };
 
 //! Utility function to add all of a transaction's outputs to a cache.
