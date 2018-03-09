@@ -10,6 +10,7 @@ probe begin {
 @define checkreturn %(if ($return < 0) next %)
 
 // information about vfs timing
+/*
 global vfs
 probe vfs.*.return {
   @checkpid
@@ -23,6 +24,7 @@ probe ioblock.*, ioblock_trace.* {
   @checkpid
   bio[sprintf("%s:count", name)]++
 }
+*/
 
 function show_time(reason: string) {
   t = gettimeofday_us()
@@ -69,6 +71,7 @@ probe bitcoin.update_tip {
   tip["progress"] = progress
 }
 
+/*
 global leveldb
 probe bitcoin.function("leveldb::DBImpl::Get").return {
   leveldb["get:count"]++
@@ -88,6 +91,15 @@ probe bitcoin.function("leveldb::DBImpl::Write").return {
 probe bitcoin.function("leveldb::DBImpl::Delete").return {
   leveldb["delete:count"]++
   leveldb["delete:time"] += gettimeofday_us() - @entry(gettimeofday_us())
+}
+*/
+
+//probe bitcoin.mallinfo {
+  //  printf("info is %s\n", info)
+  //}
+
+probe bitcoin.malloc_info {
+  printf("malloc info is %d %d %d\n", hblks, uordblks, fordblks)
 }
 
 function show_mem() {
@@ -112,9 +124,11 @@ function show_all() {
   show_time("timer")
 
   // now show the events
+  /*
   @showmap("bio", bio)
   @showmap("vfs", vfs)
   @showmap("leveldb", leveldb)
+  */
   show_cache()
   show_mem()
 

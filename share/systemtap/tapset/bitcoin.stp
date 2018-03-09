@@ -41,3 +41,10 @@ probe bitcoin.update_tip = process(@BITCOIND).mark("update_tip") {
   cache_bytes = $arg4
   progress = $arg5
 }
+
+probe bitcoin.malloc_info = process(@BITCOIND).mark("malloc__info") {
+  whence = $arg1
+  hblks = $arg2
+  uordblks = $arg3
+  fordblks = $arg4
+}

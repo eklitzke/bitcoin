@@ -4,6 +4,7 @@
 
 #include <coins.h>
 #include <probes.h>
+#include <malloc_info.h>
 
 #include <consensus/consensus.h>
 #include <random.h>
@@ -209,9 +210,13 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn
 bool CCoinsViewCache::Flush() {
     if (PROBE_CACHE_FLUSH_ENABLED() && m_enable_probing)
         PROBE_CACHE_FLUSH(cacheCoins.size(), DynamicMemoryUsage());
+    if (PROBE_MALLOC_INFO_ENABLED() && m_enable_probing)
+        GetMallinfo("before_flush");
     bool fOk = base->BatchWrite(cacheCoins, hashBlock);
     cacheCoins.clear();
     cachedCoinsUsage = 0;
+    if (PROBE_MALLOC_INFO_ENABLED() && m_enable_probing)
+        GetMallinfo("after_flush");
     return fOk;
 }
 

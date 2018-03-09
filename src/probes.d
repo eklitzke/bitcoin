@@ -9,6 +9,7 @@ provider bitcoin
     probe finish_ibd();
     probe read_block_from_disk(int height, int filenum);
     probe update_tip(string block_hash, uint32_t height, size_t cache_size, size_t cache_bytes, size_t progress);
+    probe malloc__info(int whence, int hblks, int uordblks, int fordblks);
 };
 
 #pragma D attributes Evolving / Evolving / Common provider bitcoin provider

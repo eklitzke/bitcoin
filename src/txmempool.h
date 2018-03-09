@@ -16,6 +16,7 @@
 #include <amount.h>
 #include <coins.h>
 #include <indirectmap.h>
+#include <malloc_info.h>
 #include <policy/feerate.h>
 #include <primitives/transaction.h>
 #include <sync.h>
@@ -761,7 +762,7 @@ struct DisconnectedBlockTransactions {
     // Estimate the overhead of queuedTx to be 6 pointers + an allocation, as
     // no exact formula for boost::multi_index_contained is implemented.
     size_t DynamicMemoryUsage() const {
-        return memusage::MallocUsage(sizeof(CTransactionRef) + 6 * sizeof(void*)) * queuedTx.size() + cachedInnerUsage;
+        return MallocUsage(sizeof(CTransactionRef) + 6 * sizeof(void*)) * queuedTx.size() + cachedInnerUsage;
     }
 
     void addTransaction(const CTransactionRef& tx)
