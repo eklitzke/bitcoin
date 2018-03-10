@@ -41,3 +41,7 @@ probe bitcoin.update_tip = process(@BITCOIND).mark("update_tip") {
   cache_bytes = $arg4
   progress = $arg5
 }
+
+probe bitcoin.leveldb_table_cache = process(@BITCOIND).function("leveldb::TableCache::FindTable").return {
+  hit = $return->state_ ? 1 : 0
+}
