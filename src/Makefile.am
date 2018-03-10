@@ -184,15 +184,12 @@ probes.h: probes.d
 	@sed 's/BITCOIN_/PROBE_/' $@ > $@.tmp
 	@mv $@.tmp $@
 
-LIBBITCOIN_PROBES=probes.o
 probes.o: probes.d
 	@$(DTRACE) -C -G -s $< -o $@
 
 else
 probes.h: probes.d
 	$(AM_V_GEN) $(abs_top_srcdir)/share/genprobes.sh "$(abs_top_builddir)/src/probes.d" $@
-
-LIBBITCOIN_PROBES=
 endif
 
 BUILT_SOURCES = probes.h
@@ -384,6 +381,9 @@ libbitcoin_util_a_SOURCES = \
   utilstrencodings.cpp \
   utiltime.cpp \
   $(BITCOIN_CORE_H)
+if ENABLE_SYSTEMTAP
+libbitcoin_util_a_LIBADD = probes.o
+endif
 
 if GLIBC_BACK_COMPAT
 libbitcoin_util_a_SOURCES += compat/glibc_compat.cpp
@@ -413,7 +413,6 @@ bitcoind_LDADD = \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_COMMON) \
-  $(LIBBITCOIN_PROBES) \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_ZMQ) \
@@ -458,7 +457,6 @@ endif
 bitcoin_tx_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_COMMON) \
-  $(LIBBITCOIN_PROBES) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CONSENSUS) \
   $(LIBBITCOIN_CRYPTO) \
