@@ -177,9 +177,6 @@ class CDBWrapper
 {
     friend const std::vector<unsigned char>& dbwrapper_private::GetObfuscateKey(const CDBWrapper &w);
 private:
-    //! custom environment this database is using (may be nullptr in case of default environment)
-    leveldb::Env* penv;
-
     //! database options used
     leveldb::Options options;
 
@@ -215,13 +212,13 @@ private:
 public:
     /**
      * @param[in] path        Location in the filesystem where leveldb data will be stored.
-     * @param[in] nCacheSize  Configures various leveldb cache settings.
-     * @param[in] fMemory     If true, use leveldb's memory environment.
-     * @param[in] fWipe       If true, remove all existing data.
+     * @param[in] cache_size  Configures LevelDB write cache (and possibly block cache)
+     * @param[in] memory_env  If true, use leveldb's memory environment.
+     * @param[in] wipe        If true, remove all existing data.
      * @param[in] obfuscate   If true, store data obfuscated via simple XOR. If false, XOR
      *                        with a zero'd byte array.
      */
-    CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool obfuscate = false);
+    CDBWrapper(const fs::path& path, size_t cache_size, bool memory_env = false, bool wipe = false, bool obfuscate = false);
     ~CDBWrapper();
 
     template <typename K, typename V>

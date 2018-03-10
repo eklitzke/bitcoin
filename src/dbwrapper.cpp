@@ -71,6 +71,23 @@ public:
     }
 };
 
+// Does the default LevelDB env on this host use mmap?
+static bool DefaultEnvUsesMmap() {
+#ifdef WIN32
+    return false;
+#else
+    if (sizeof(void*) < 8)
+        return false;
+    return true;
+#endif
+}
+
+// Should we allocate a block cache? In mmap mode LevelDB does not actually use
+// the block cache. Likewise, we don't need a block cache for memory databases.
+static bool ShouldUseBlockCache(bool memory_env) {
+    return DefaultEnvUsesMmap() ? false : !memory_env;
+}
+
 static void SetMaxOpenFiles(leveldb::Options *options) {
     // On most platforms the default setting of max_open_files (which is 1000)
     // is optimal. On Windows using a large file count is OK because the handles
@@ -88,7 +105,7 @@ static void SetMaxOpenFiles(leveldb::Options *options) {
 
     int default_open_files = options->max_open_files;
 #ifndef WIN32
-    if (sizeof(void*) < 8) {
+    if (!DefaultEnvUsesMmap()) {
         options->max_open_files = 64;
     }
 #endif
@@ -96,14 +113,24 @@ static void SetMaxOpenFiles(leveldb::Options *options) {
              options->max_open_files, default_open_files);
 }
 
-static leveldb::Options GetOptions(size_t nCacheSize)
+static leveldb::Options GetOptions(size_t cache_size, bool memory_env)
 {
     leveldb::Options options;
-    options.block_cache = leveldb::NewLRUCache(nCacheSize / 2);
-    options.write_buffer_size = nCacheSize / 4; // up to two write buffers may be held in memory simultaneously
+
+    // Up to two write buffers may be held in memory simultaneously.
+    if (ShouldUseBlockCache(memory_env)) {
+        options.write_buffer_size = cache_size / 4;
+        options.block_cache = leveldb::NewLRUCache(cache_size / 2);
+    } else {
+        options.write_buffer_size = cache_size / 2;
+        assert(options.block_cache == nullptr);
+    }
+    options.create_if_missing = true;
     options.filter_policy = leveldb::NewBloomFilterPolicy(10);
     options.compression = leveldb::kNoCompression;
     options.info_log = new CBitcoinLevelDBLogger();
+    if (memory_env)
+        options.env = leveldb::NewMemEnv(options.env);
     if (leveldb::kMajorVersion > 1 || (leveldb::kMajorVersion == 1 && leveldb::kMinorVersion >= 16)) {
         // LevelDB versions before 1.16 consider short writes to be corruption. Only trigger error
         // on corruption in later versions.
@@ -113,21 +140,16 @@ static leveldb::Options GetOptions(size_t nCacheSize)
     return options;
 }
 
-CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bool fWipe, bool obfuscate)
+CDBWrapper::CDBWrapper(const fs::path& path, size_t cache_size, bool memory_env, bool wipe, bool obfuscate)
     : m_name(fs::basename(path))
 {
-    penv = nullptr;
     readoptions.verify_checksums = true;
     iteroptions.verify_checksums = true;
     iteroptions.fill_cache = false;
     syncoptions.sync = true;
-    options = GetOptions(nCacheSize);
-    options.create_if_missing = true;
-    if (fMemory) {
-        penv = leveldb::NewMemEnv(leveldb::Env::Default());
-        options.env = penv;
-    } else {
-        if (fWipe) {
+    options = GetOptions(cache_size, memory_env);
+    if (!memory_env) {
+        if (wipe) {
             LogPrintf("Wiping LevelDB in %s\n", path.string());
             leveldb::Status result = leveldb::DestroyDB(path.string(), options);
             dbwrapper_private::HandleError(result);
@@ -168,15 +190,11 @@ CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bo
 CDBWrapper::~CDBWrapper()
 {
     delete pdb;
-    pdb = nullptr;
     delete options.filter_policy;
-    options.filter_policy = nullptr;
     delete options.info_log;
-    options.info_log = nullptr;
     delete options.block_cache;
-    options.block_cache = nullptr;
-    delete penv;
-    options.env = nullptr;
+    if (options.env != leveldb::Env::Default())
+        delete options.env;
 }
 
 bool CDBWrapper::WriteBatch(CDBBatch& batch, bool fSync)
