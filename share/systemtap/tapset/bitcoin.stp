@@ -36,13 +36,18 @@ probe bitcoin.update_tip = process(@BITCOIND).mark("update_tip") {
   progress = $arg5
 }
 
-probe bitcoin.leveldb_table_cache = process(@BITCOIND).function("leveldb::TableCache::FindTable").return {
-  hit = $return->state_ ? 1 : 0
-}
-
 probe bitcoin.db_batch_write = process(@BITCOIND).mark("db_batch_write") {
   dbname = user_string($arg1)
   size_estimate = $arg2
   put_count = $arg3
   erase_count = $arg4
+}
+
+// Probe the LevelDB table cache to check for hit or miss
+probe bitcoin.leveldb_table_cache = process(@BITCOIND).function("leveldb::TableCache::FindTable").return {
+  hit = $return->state_ ? 1 : 0
+}
+
+// Probe LevelDB background compaction tasks
+probe bitcoin.leveldb_compaction = process(@BITCOIND).function("leveldb::DBImpl::BackgroundCompaction") {
 }

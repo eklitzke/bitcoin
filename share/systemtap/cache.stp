@@ -78,6 +78,18 @@ probe bitcoin.db_batch_write {
   println()
 }
 
+probe bitcoin.leveldb_compaction {
+  showtag("leveldb_bgc")
+  putstr("event", "start")
+  println()
+}
+
+probe bitcoin.leveldb_compaction.return {
+  showtag("leveldb_bgc")
+  putstr("event", "end")
+  println()
+}
+
 global hits, misses
 probe bitcoin.coin_cache_fetch {
   if (hit) hits++
