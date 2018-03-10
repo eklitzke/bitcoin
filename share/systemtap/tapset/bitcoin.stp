@@ -48,6 +48,17 @@ probe bitcoin.leveldb_table_cache = process(@BITCOIND).function("leveldb::TableC
   hit = $return->state_ ? 1 : 0
 }
 
-// Probe LevelDB background compaction tasks
-probe bitcoin.leveldb_compaction = process(@BITCOIND).function("leveldb::DBImpl::BackgroundCompaction") {
-}
+// LevelDB background compaction
+probe bitcoin.leveldb_compaction = process(@BITCOIND).function("leveldb::DBImpl::BackgroundCompaction") {}
+
+// LevelDB Get
+probe bitcoin.leveldb_get = process(@BITCOIND).function("leveldb::DBImpl::Get") {}
+
+// LevelDB Put
+probe bitcoin.leveldb_get = process(@BITCOIND).function("leveldb::DBImpl::Put") {}
+
+// LevelDB Write
+probe bitcoin.leveldb_get = process(@BITCOIND).function("leveldb::DBImpl::Write") {}
+
+// LevelDB Delete
+probe bitcoin.leveldb_get = process(@BITCOIND).function("leveldb::DBImpl::Delete") {}

@@ -191,25 +191,4 @@ probe ioblock.*, ioblock_trace.* {
   @checkpid
   bio[sprintf("%s:count", name)]++
 }
-
-global leveldb
-  probe bitcoin.function("leveldb::DBImpl::Get").return {
-  leveldb["get:count"]++
-  leveldb["get:time"] += gettimeofday_us() - @entry(gettimeofday_us())
-}
-
-probe bitcoin.function("leveldb::DBImpl::Put").return {
-  leveldb["put:count"]++
-  leveldb["put:time"] += gettimeofday_us() - @entry(gettimeofday_us())
-}
-
-probe bitcoin.function("leveldb::DBImpl::Write").return {
-  leveldb["write:count"]++
-  leveldb["write:time"] += gettimeofday_us() - @entry(gettimeofday_us())
-}
-
-probe bitcoin.function("leveldb::DBImpl::Delete").return {
-  leveldb["delete:count"]++
-  leveldb["delete:time"] += gettimeofday_us() - @entry(gettimeofday_us())
-}
 */
