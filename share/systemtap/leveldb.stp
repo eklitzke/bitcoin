@@ -1,0 +1,21 @@
+probe leveldb.compaction {
+  showtag("ldb_compact")
+  putint("thread", tid())
+  putstr("event", "start")
+  println()
+}
+
+probe leveldb.compaction.return {
+  showtag("ldb_compact")
+  putint("thread", tid())
+  putstr("event", "end")
+  println()
+}
+
+probe ldb_posix.* {
+  showtag("ldb_posix")
+  putint("thread", tid())
+  putstr("event", name)
+  println()
+}
+

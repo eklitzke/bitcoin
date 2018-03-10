@@ -49,16 +49,40 @@ probe bitcoin.leveldb_table_cache = process(@BITCOIND).function("leveldb::TableC
 }
 
 // LevelDB background compaction
-probe bitcoin.leveldb_compaction = process(@BITCOIND).function("leveldb::DBImpl::BackgroundCompaction") {}
+probe leveldb.compaction = process(@BITCOIND).function("leveldb::DBImpl::BackgroundCompaction") {}
 
 // LevelDB Get
-probe bitcoin.leveldb_get = process(@BITCOIND).function("leveldb::DBImpl::Get") {}
+probe leveldb.get = process(@BITCOIND).function("leveldb::DBImpl::Get") {}
 
 // LevelDB Put
-probe bitcoin.leveldb_get = process(@BITCOIND).function("leveldb::DBImpl::Put") {}
+probe leveldb.put = process(@BITCOIND).function("leveldb::DBImpl::Put") {}
 
 // LevelDB Write
-probe bitcoin.leveldb_get = process(@BITCOIND).function("leveldb::DBImpl::Write") {}
+probe leveldb.write = process(@BITCOIND).function("leveldb::DBImpl::Write") {}
 
 // LevelDB Delete
-probe bitcoin.leveldb_get = process(@BITCOIND).function("leveldb::DBImpl::Delete") {}
+probe leveldb.delete = process(@BITCOIND).function("leveldb::DBImpl::Delete") {}
+
+// Called during WAL application
+probe leveldb.log_and_apply = process(@BITCOIND).function("leveldb::VersionSet::LogAndApply") {}
+
+probe ldb_posix.new_appendable_file = process(@BITCOIND).function("NewAppendableFile@leveldb/util/env_posix.cc:397") {
+  name = "NewAppendableFile"
+}
+
+probe ldb_posix.new_random_access_file = process(@BITCOIND).function("NewRandomAccessFile@leveldb/util/env_posix.cc:356") {
+  name = "NewRandomAccessFile"
+}
+
+probe ldb_posix.new_writable_file = process(@BITCOIND).function("NewWritableFile@leveldb/util/env_posix.cc:384") {
+  name = "NewWritableFile"
+}
+
+probe ldb_posix.new_sequential_file = process(@BITCOIND).function("NewSequentialFile@leveldb/util/env_posix.cc:344") {
+  name = "NewSequentialFile"
+}
+
+// PosixEnv::DeleteFile
+probe ldb_posix.delete_file = process(@BITCOIND).function("DeleteFile@leveldb/util/env_posix.cc:429") {
+  name = "DeleteFile"
+}
