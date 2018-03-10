@@ -1,16 +1,171 @@
-// systemtap script for profiling bitcoind
+// SystemTap script for profiling IBD.
+//
+// Example usage:
+//   stap -c 'bitcoind -reindex-chainstate' cache.stp
+//
+// By default size units will be showin in MB. To use another units, you can
+// positionally pass the shift amount (0=bytes, 10=KB, 20=MB, etc.) when
+// invoking this script.
 
-global start_time, targetpid
+global start_time, targetpid, page_size
 probe begin {
   start_time = gettimeofday_us()
   targetpid = target()
+  page_size = mem_page_size()
+}
+
+function putint(key: string, val: long) {
+  printf("%-15s ", sprintf("%s=%lu", key, val))
+}
+
+function putstr(key: string, val: string) {
+  printf("%-15s ", sprintf("%s=%s", key, val))
+}
+
+
+function showtagclock(tag: string, now: long) {
+  elapsed = now - start_time
+  secs = elapsed / 1000000
+  micros = elapsed % 1000000
+  printf("%-12s %-13s ", sprintf("%lu.%06lu", secs, micros), tag)
+}
+
+function showtag(tag: string) {
+  showtagclock(tag, gettimeofday_us())
+}
+
+// By default size units will be displayed in MB. You can specify another shift
+// amount on the command line to display B, KB, or GB.
+global sizeshift
+probe begin {
+  sizeshift = %( $# >= 1 %? $1 %: 20 %)
+  if (sizeshift == 0) units = "B"
+  else if (sizeshift == 10) units = "KB"
+  else if (sizeshift == 20) units = "MB"
+  else if (sizeshift == 30) units = "GB"
+  else {
+    printf("Unknown size: %d\n", sizeshift)
+    exit()
+  }
+  showtag("begin")
+  putstr("units", units)
+  println()
+}
+
+function fmt_bytes:long (bytes: long) {
+  return bytes >> sizeshift
+}
+
+function fmt_pages:long (pages: long) {
+  return fmt_bytes(pages * page_size)
+}
+
+// record when cache flushes start
+probe bitcoin.coin_cache_flush {
+  showtag("coinflush")
+  putint("coins", coins)
+  putint("size", fmt_bytes(bytes))
+  println()
+}
+
+probe bitcoin.db_batch_write {
+  showtag("batch_write")
+  putstr("db", dbname)
+  putint("size", fmt_bytes(size_estimate))
+  putint("puts", put_count)
+  putint("erases", erase_count)
+  putint("total", put_count + erase_count)
+  println()
+}
+
+global hits, misses
+probe bitcoin.coin_cache_fetch {
+  if (hit) hits++
+  else misses++
+}
+
+function show_cache() {
+  putint("hits", hits)
+  putint("misses", misses)
+  println()
+  hits=0
+  misses=0
+}
+
+global tip
+probe bitcoin.update_tip {
+  tip["height"] = height
+  tip["utxo_count"] = cache_size
+  tip["utxo_size"] = cache_bytes
+  tip["progress"] = progress
+}
+
+function show_tip() {
+  progress = tip["progress"]
+  if (progress == 1000000)
+    putstr("pct", "100.0000")
+  else {
+    n = progress / 10000
+    d = progress % 10000
+    putstr("pct", sprintf("%d.%04d", n, d))
+  }
+  putint("height", tip["height"])
+  putint("utxo:size", fmt_bytes(tip["utxo_size"]))
+  putint("utxo:count", tip["utxo_count"])
+  println()
+}
+
+function show_mem() {
+  page_size = mem_page_size()
+  putint("virt", fmt_pages(proc_mem_size(targetpid)))
+  putint("rss", fmt_pages(proc_mem_rss(targetpid)))
+  putint("data", fmt_pages(proc_mem_data(targetpid)))
+  println()
+}
+
+function show_all() {
+  now = gettimeofday_us()
+
+  showtagclock("coincache", now)
+  show_cache()
+
+  showtagclock("memory", now)
+  show_mem()
+
+  showtagclock("updatetip", now)
+  show_tip()
+}
+
+probe timer.sec(10) {
+  show_all()
+}
+
+probe bitcoin.finish_ibd {
+  showtag("finish_ibd")
+  println()
+  exit()
+}
+
+/*
+global tablecache
+probe bitcoin.leveldb_table_cache {
+  if (hit)
+    tablecache["hit:count"]++
+  else
+    tablecache["miss:count"]++
 }
 
 @define checkpid %(if (pid() != targetpid) next %)
 @define checkreturn %(if ($return < 0) next %)
 
-// information about vfs timing
-/*
+@define showmap(obj) %(
+  foreach([key] in @obj) {
+    printf(" %s=%d", key, @obj[key])
+  }
+  println()
+  delete @obj
+%)
+
 global vfs
 probe vfs.*.return {
   @checkpid
@@ -24,62 +179,13 @@ probe ioblock.*, ioblock_trace.* {
   @checkpid
   bio[sprintf("%s:count", name)]++
 }
-*/
 
-function show_time(reason: string) {
-  t = gettimeofday_us()
-  secs = t / 1000000
-  micros = t % 1000000
-
-  elapsed = t - start_time
-  elapsed_secs = elapsed / 1000000
-  elapsed_micros = elapsed % 1000000
-
-  printf("time t=%lu.%06lu elapsed=%lu.%06lu reason=%s\n", secs, micros, elapsed_secs, elapsed_micros, reason)
+global leveldb
+  probe bitcoin.function("leveldb::DBImpl::Get").return {
+  leveldb["get:count"]++
+  leveldb["get:time"] += gettimeofday_us() - @entry(gettimeofday_us())
 }
 
-// record when cache flushes start
-probe bitcoin.cache_flush {
-  show_time("flush")
-  printf("flush coins:count=%lu coins:bytes=%lu\n", coins, bytes)
-  println()
-}
-
-// record CCoinsViewCache hits
-global hits
-probe bitcoin.cache_hit {
-  hits++
-}
-
-// record CCoinsViewCache misses
-global misses
-probe bitcoin.cache_miss {
-  misses++
-}
-
-function show_cache() {
-  printf("cache hits=%lu misses=%lu\n", hits, misses)
-  hits=0
-  misses=0
-}
-
-global tip
-probe bitcoin.update_tip {
-  tip["height"] = height
-  tip["utxo:count"] = cache_size
-  tip["utxo:size"] = cache_bytes
-  tip["progress"] = progress
-}
-
-global tablecache
-probe bitcoin.leveldb_table_cache {
-  if (hit)
-    tablecache["hit:count"]++
-  else
-    tablecache["miss:count"]++
-}
-
-/*
 probe bitcoin.function("leveldb::DBImpl::Put").return {
   leveldb["put:count"]++
   leveldb["put:time"] += gettimeofday_us() - @entry(gettimeofday_us())
@@ -95,52 +201,3 @@ probe bitcoin.function("leveldb::DBImpl::Delete").return {
   leveldb["delete:time"] += gettimeofday_us() - @entry(gettimeofday_us())
 }
 */
-
-function show_mem() {
-  page_size = mem_page_size()
-  vsz = proc_mem_size(targetpid) * page_size
-  rss = proc_mem_rss(targetpid) * page_size
-  data = proc_mem_data(targetpid) * page_size
-  printf("memory virtual:bytes=%lu rss:bytes=%lu data:bytes=%lu\n", vsz, rss, data)
-}
-
-@define showmap(event, obj) %(
-  print(@event)
-  foreach([key] in @obj) {
-    printf(" %s=%d", key, @obj[key])
-  }
-  println()
-  delete @obj
-%)
-
-function show_all() {
-  // print the timestamp for these events
-  show_time("timer")
-
-  // now show the events
-  /*
-  @showmap("bio", bio)
-  @showmap("vfs", vfs)
-  @showmap("leveldb", leveldb)
-  */
-  @showmap("tablecache", tablecache)
-  show_cache()
-  show_mem()
-
-  height = tip["height"]
-  progress = tip["progress"]
-  @showmap("updatetip", tip)
-  tip["height"] = height
-  tip["progress"] = progress
-
-  println()
-}
-
-probe begin, timer.sec(10) {
-  show_all()
-}
-
-probe bitcoin.finish_ibd {
-  printf("finish elapsed:time=%d\n", gettimeofday_us() - start_time)
-  exit()
-}

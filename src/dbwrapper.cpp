@@ -4,6 +4,7 @@
 
 #include <dbwrapper.h>
 
+#include <probes.h>
 #include <random.h>
 
 #include <leveldb/cache.h>
@@ -160,6 +161,10 @@ bool CDBWrapper::WriteBatch(CDBBatch& batch, bool fSync)
     double mem_before = 0;
     if (log_memory) {
         mem_before = DynamicMemoryUsage() / 1024 / 1024;
+    }
+    if (PROBE_DB_BATCH_WRITE_ENABLED()) {
+        const auto pr = batch.Counts();
+        PROBE_DB_BATCH_WRITE(m_name, batch.SizeEstimate(), pr.first, pr.second);
     }
     leveldb::Status status = pdb->Write(fSync ? syncoptions : writeoptions, &batch.batch);
     dbwrapper_private::HandleError(status);

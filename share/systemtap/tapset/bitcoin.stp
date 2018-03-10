@@ -1,11 +1,5 @@
-// Name of the executable with probes. This must either be an absolute path, or
-// something that can be found from $PATH.
-//
-// If you're doing local development on this tapset, you may wish to
-// temporarily change this value. For instance, if you might want to change it
-// to "src/bitcoind" if you're working out of the bitcoin top level directory
-// and want to run commands like "stap -c ./src/bitcoind". Likewise, if you want
-// to probe bitcoin-qt you would change the name here.
+// Name of the executable with probes. SystemTap requires that this either be an
+// absolute path, or something that can be found in $PATH.
 @define BITCOIND
 %(
   "bitcoind"
@@ -18,14 +12,14 @@ probe bitcoin.init_main = process(@BITCOIND).mark("init_main") {
   config = user_string($arg2)
 }
 
-probe bitcoin.cache_flush = process(@BITCOIND).mark("cache_flush") {
+probe bitcoin.coin_cache_flush = process(@BITCOIND).mark("coin_cache_flush") {
   coins = $arg1
   bytes = $arg2
 }
 
-probe bitcoin.cache_hit = process(@BITCOIND).mark("cache_hit") {}
-
-probe bitcoin.cache_miss = process(@BITCOIND).mark("cache_miss") {}
+probe bitcoin.coin_cache_fetch = process(@BITCOIND).mark("coin_cache_fetch") {
+  hit = $arg1  // 1 for cache hit, 0 for cache miss
+}
 
 probe bitcoin.finish_ibd = process(@BITCOIND).mark("finish_ibd") {}
 
@@ -43,5 +37,12 @@ probe bitcoin.update_tip = process(@BITCOIND).mark("update_tip") {
 }
 
 probe bitcoin.leveldb_table_cache = process(@BITCOIND).function("leveldb::TableCache::FindTable").return {
-    hit = $return->state_ ? 1 : 0
-  }
+  hit = $return->state_ ? 1 : 0
+}
+
+probe bitcoin.db_batch_write = process(@BITCOIND).mark("db_batch_write") {
+  dbname = user_string($arg1)
+  size_estimate = $arg2
+  put_count = $arg3
+  erase_count = $arg4
+}
