@@ -1,6 +1,12 @@
 #!/bin/bash
 #
-# Convenience functions for working with the local builds.
+# Convenience script that can be sourced when working with local builds. This
+# adds $PWD/src to $PATH and sets the SYSTEMTAP_TAPSET environment variable to
+# include the Bitcoin tapset directory.
+#
+# This is only needed for local dev work. When a SystemTap-enabled build is
+# installed with "make install", because things will be installed to the correct
+# system-wide paths.
 
 if [ ! -x ./src/bitcoind ]; then
   echo "Please run this from the root project directory"
@@ -26,6 +32,11 @@ PS1="(stap) $PS1"
 
 # This function will restore everything to its original state.
 deactivate() {
+  if [ -z "${_ORIG_STAP_VARS[0]}" ]; then
+    echo "deactivate did not deactivate itself (this is a bug)..."
+    return 1
+  fi
+
   PATH="${_ORIG_STAP_VARS[0]}"
   PS1="${_ORIG_STAP_VARS[1]}"
   SYSTEMTAP_TAPSET="${_ORIG_STAP_VARS[2]}"
