@@ -43,5 +43,5 @@ probe bitcoin.update_tip = process(@BITCOIND).mark("update_tip") {
 }
 
 probe bitcoin.leveldb_table_cache = process(@BITCOIND).function("leveldb::TableCache::FindTable").return {
-  hit = $return->state_ ? 1 : 0
-}
+    hit = $return->state_ ? 1 : 0
+  }
