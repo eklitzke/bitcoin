@@ -41,8 +41,7 @@ function show_time(reason: string) {
 // record when cache flushes start
 probe bitcoin.cache_flush {
   show_time("flush")
-  printf("flush coins:count=%lu coins:bytes=%lu\n", coins, bytes)
-  println()
+  printf("flush coins:count=%lu coins:bytes=%lu\n\n", coins, bytes)
 }
 
 // record CCoinsViewCache hits
@@ -99,7 +98,8 @@ probe bitcoin.function("leveldb::DBImpl::Delete").return {
   //}
 
 probe bitcoin.malloc_info {
-  printf("malloc info is %d %d %d\n", hblks, uordblks, fordblks)
+  show_time(sprintf("malloc_%s", reason))
+  printf("malloc reason=%s used:bytes=%lu free:bytes=%lu\n\n", reason, uordblks, fordblks)
 }
 
 function show_mem() {

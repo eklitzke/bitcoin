@@ -19,6 +19,6 @@ struct mallinfo mallinfo(void) {
 struct mallinfo GetMallinfo(const char *whence) {
     struct mallinfo info = mallinfo();
     if (PROBE_MALLOC_INFO_ENABLED())
-        PROBE_MALLOC_INFO(whence, info.hblks, info.uordblks, info.fordblks);
+        PROBE_MALLOC_INFO(whence, info.uordblks, info.fordblks);
     return info;
 }
