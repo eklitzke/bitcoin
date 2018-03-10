@@ -13,7 +13,6 @@
 #include <fs.h>
 #include <rpc/server.h>
 #include <init.h>
-#include <noui.h>
 #include <util.h>
 #include <httpserver.h>
 #include <httprpc.h>
@@ -22,6 +21,8 @@
 #include <boost/thread.hpp>
 
 #include <stdio.h>
+
+void noui_connect();
 
 /* Introduction text for doxygen: */
 

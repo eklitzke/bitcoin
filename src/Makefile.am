@@ -117,7 +117,6 @@ BITCOIN_CORE_H = \
   netaddress.h \
   netbase.h \
   netmessagemaker.h \
-  noui.h \
   policy/feerate.h \
   policy/fees.h \
   policy/policy.h \
