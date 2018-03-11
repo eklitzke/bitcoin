@@ -61,6 +61,7 @@ function fmt_pages:long (pages: long) {
 }
 
 // record when cache flushes start
+/*
 probe bitcoin.coin_cache_flush {
   showtag("coinflush")
   putint("coins", coins)
@@ -77,6 +78,7 @@ probe bitcoin.db_batch_write {
   putint("total", put_count + erase_count)
   println()
 }
+*/
 
 global hits, misses
 probe bitcoin.coin_cache_fetch {

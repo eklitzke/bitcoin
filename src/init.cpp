@@ -1409,8 +1409,7 @@ bool AppInitMain()
     coins_cache_sz = std::max(coins_cache_sz, COINS_CACHE_MIN << 20);
 
     // size of chainstate tree database write buffer
-    const size_t chainstate_buf_sz = coins_cache_sz / 4;
-    coins_cache_sz -= chainstate_buf_sz;
+    const size_t chainstate_buf_sz = coins_cache_sz;
 
     // size of block tree database write buffer
     const int64_t blocktree_buf_sz = 4 << 20;
