@@ -1403,13 +1403,13 @@ bool AppInitMain()
     fReindex = gArgs.GetBoolArg("-reindex", false);
     bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
 
-    // size of the in-memory utxo cache
-    size_t coins_cache_sz = gArgs.GetArg("-dbcache", COINS_CACHE_DEFAULT) << 20;
-    coins_cache_sz = std::min(coins_cache_sz, COINS_CACHE_MAX << 20);
-    coins_cache_sz = std::max(coins_cache_sz, COINS_CACHE_MIN << 20);
+    // size of the in-memory leveldb utxo buffer
+    size_t chainstate_buf_sz = gArgs.GetArg("-dbcache", COINS_CACHE_DEFAULT) << 20;
+    chainstate_buf_sz = std::min(chainstate_buf_sz, COINS_CACHE_MAX << 20);
+    chainstate_buf_sz = std::max(chainstate_buf_sz, COINS_CACHE_MIN << 20);
 
     // size of chainstate tree database write buffer
-    const size_t chainstate_buf_sz = coins_cache_sz;
+    const size_t coins_cache_sz = chainstate_buf_sz / 16;
 
     // size of block tree database write buffer
     const int64_t blocktree_buf_sz = 4 << 20;
