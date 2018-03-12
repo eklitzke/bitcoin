@@ -1408,7 +1408,7 @@ bool AppInitMain()
     chainstate_buf_sz = std::min(chainstate_buf_sz, COINS_CACHE_MAX << 20);
     chainstate_buf_sz = std::max(chainstate_buf_sz, COINS_CACHE_MIN << 20);
 
-    // size of chainstate tree database write buffer
+    // size of memory cache used by pcoinsTip
     const size_t coins_cache_sz = chainstate_buf_sz / 16;
 
     // size of block tree database write buffer
