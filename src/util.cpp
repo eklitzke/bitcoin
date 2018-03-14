@@ -352,7 +352,6 @@ int LogPrintStr(const std::string &str)
     {
         // print to console
         ret = fwrite(strTimestamped.data(), 1, strTimestamped.size(), stdout);
-        fflush(stdout);
     }
     else if (fPrintToDebugLog)
     {

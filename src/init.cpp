@@ -838,7 +838,8 @@ void InitLogging()
     // debug.log.
     LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 
-    fPrintToConsole = gArgs.GetBoolArg("-printtoconsole", ShouldPrintToConsole());
+    if ((fPrintToConsole = gArgs.GetBoolArg("-printtoconsole", ShouldPrintToConsole())))
+        setlinebuf(stdout);
     fLogTimestamps = gArgs.GetBoolArg("-logtimestamps", DEFAULT_LOGTIMESTAMPS);
     fLogTimeMicros = gArgs.GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
     fLogIPs = gArgs.GetBoolArg("-logips", DEFAULT_LOGIPS);
