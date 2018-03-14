@@ -336,6 +336,11 @@ static std::string LogTimestampStr(const std::string &str, std::atomic_bool *fSt
     return strStamped;
 }
 
+bool IsStdoutTty()
+{
+    return isatty(STDOUT_FILENO);
+}
+
 int LogPrintStr(const std::string &str)
 {
     int ret = 0; // Returns total number of characters written

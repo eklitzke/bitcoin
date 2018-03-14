@@ -121,6 +121,9 @@ std::vector<CLogCategoryActive> ListActiveLogCategories();
 /** Return true if str parses as a log category and set the flags in f */
 bool GetLogCategory(uint32_t *f, const std::string *str);
 
+/** Make a best effort to detect if stdout is a tty. */
+bool IsStdoutTty();
+
 /** Send a string to the log output */
 int LogPrintStr(const std::string &str);
 
