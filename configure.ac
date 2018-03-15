@@ -219,6 +219,12 @@ AC_ARG_ENABLE([debug],
     [enable_debug=$enableval],
     [enable_debug=no])
 
+# Enable different -fsanitize options
+AC_ARG_ENABLE([sanitizer],
+    [AS_HELP_STRING([--enable-sanitizer],
+                    [comma separated list of extra -fsanitize options to use])],
+    [enable_sanitizer=$enableval])
+
 # Enable gprof profiling
 AC_ARG_ENABLE([gprof],
     [AS_HELP_STRING([--enable-gprof],
@@ -245,6 +251,23 @@ if test "x$enable_debug" = xyes; then
     if test "x$GXX" = xyes; then
         CXXFLAGS="$CXXFLAGS -g3 -O0"
     fi
+fi
+
+if test x$enable_sanitizer != x; then
+  # First check if the compiler accepts flags. If an incompatible pair like
+  # -fsanitize=address,thread is used here, this check will fail. This will also
+  # fail if a bad argument is passed, e.g. -fsanitize=undfeined
+  AX_CHECK_COMPILE_FLAG(
+    [[-fsanitize=$enable_sanitizer]],,[AC_MSG_ERROR([compiler did not accept requested flags])])
+
+  # Some compilers (e.g. GCC) require additional libraries like libasan,
+  # libtsan, libubsan, etc. Make sure linking still works with these flags. This
+  # is a separate check so we can give a better error message when the flags are
+  # supported but libraries are missing.
+  AX_CHECK_LINK_FLAG(
+    [[-fsanitize=$enable_sanitizer]],
+    [[SANITIZER_CXXFLAGS=-fsanitize=$enable_sanitizer]],
+    [AC_MSG_ERROR([linker did not accept requested flags, you are missing required libraries])])
 fi
 
 ERROR_CXXFLAGS=
@@ -1274,6 +1297,7 @@ AC_SUBST(HARDENED_CPPFLAGS)
 AC_SUBST(HARDENED_LDFLAGS)
 AC_SUBST(PIC_FLAGS)
 AC_SUBST(PIE_FLAGS)
+AC_SUBST(SANITIZER_CXXFLAGS)
 AC_SUBST(SSE42_CXXFLAGS)
 AC_SUBST(LIBTOOL_APP_LDFLAGS)
 AC_SUBST(USE_UPNP)
