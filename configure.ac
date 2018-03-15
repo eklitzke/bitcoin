@@ -219,6 +219,27 @@ AC_ARG_ENABLE([debug],
     [enable_debug=$enableval],
     [enable_debug=no])
 
+# Enable Address Sanitizer options
+AC_ARG_ENABLE([asan],
+    [AS_HELP_STRING([--enable-asan],
+                    [use asan flags to check for memory safety issues (default is no)])],
+    [enable_asan=$enableval],
+    [enable_asan=no])
+
+# Enable Thread Sanitizer options
+AC_ARG_ENABLE([tsan],
+    [AS_HELP_STRING([--enable-tsan],
+                    [use tsan flags to check for thread safey issues (default is no)])],
+    [enable_tsan=$enableval],
+    [enable_tsan=no])
+
+# Enable Undefined Behavior Sanitizer options
+AC_ARG_ENABLE([ubsan],
+    [AS_HELP_STRING([--enable-ubsan],
+                    [use ubsan flags to check for undefined behavior (default is no)])],
+    [enable_ubsan=$enableval],
+    [enable_ubsan=no])
+
 # Enable gprof profiling
 AC_ARG_ENABLE([gprof],
     [AS_HELP_STRING([--enable-gprof],
@@ -245,6 +266,18 @@ if test "x$enable_debug" = xyes; then
     if test "x$GXX" = xyes; then
         CXXFLAGS="$CXXFLAGS -g3 -O0"
     fi
+fi
+
+if test "x$enable_asan" = xyes; then
+  AX_CHECK_COMPILE_FLAG([-fsanitize=address],[CXXFLAGS="$CXXFLAGS -fsanitize=address"])
+fi
+
+if test "x$enable_tsan" = xyes; then
+  AX_CHECK_COMPILE_FLAG([-fsanitize=thread],[CXXFLAGS="$CXXFLAGS -fsanitize=thread"])
+fi
+
+if test "x$enable_ubsan" = xyes; then
+  AX_CHECK_COMPILE_FLAG([-fsanitize=undefined],[CXXFLAGS="$CXXFLAGS -fsanitize=undefined"])
 fi
 
 ERROR_CXXFLAGS=
