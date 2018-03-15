@@ -268,16 +268,28 @@ if test "x$enable_debug" = xyes; then
     fi
 fi
 
+# Checking for -fsanitize flags works differently from other compiler flags.
+# That's because with GCC there's an implicit linking dependency on libasan,
+# libtsan, etc. when using the related -fsanitize flags. Clang works
+# differently: it statically links these dependencies. Therefore we can't use
+# AC_CHECK_LIB to test this, we need to compile and link.
 if test "x$enable_asan" = xyes; then
-  AX_CHECK_COMPILE_FLAG([-fsanitize=address],[CXXFLAGS="$CXXFLAGS -fsanitize=address"])
+  BITCOIN_CHECK_COMPILE_FLAG_AND_LINK([-fsanitize=address],
+                                      [CXXFLAGS="$CXXFLAGS -fsanitize=address"],
+                                      [AC_MSG_ERROR([-fsanitize=asan broken, check if you have libasan installed])])
 fi
-
 if test "x$enable_tsan" = xyes; then
-  AX_CHECK_COMPILE_FLAG([-fsanitize=thread],[CXXFLAGS="$CXXFLAGS -fsanitize=thread"])
+  BITCOIN_CHECK_COMPILE_FLAG_AND_LINK([-fsanitize=thread],
+                                      [CXXFLAGS="$CXXFLAGS -fsanitize=thread"],
+                                      [AC_MSG_ERROR([-fsanitize=thread broken, check if you have libtsan installed])])
 fi
-
 if test "x$enable_ubsan" = xyes; then
-  AX_CHECK_COMPILE_FLAG([-fsanitize=undefined],[CXXFLAGS="$CXXFLAGS -fsanitize=undefined"])
+  # Our minimum version of GCC doesn't understand this flag, so check that it
+  # exists doing the linking test.
+  AX_CHECK_COMPILE_FLAG([-fsanitize=undefined],,[AC_MSG_ERROR([-fsanitize=undefined not supported by compiler])]
+  BITCOIN_CHECK_COMPILE_FLAG_AND_LINK([-fsanitize=undefined],
+                                      [CXXFLAGS="$CXXFLAGS -fsanitize=undefined"],
+                                      [AC_MSG_ERROR([-fsanitize=undefined broken, check if you have libubsan installed])])
 fi
 
 ERROR_CXXFLAGS=
