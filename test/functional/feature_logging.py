@@ -58,10 +58,10 @@ class LoggingTest(BitcoinTestFramework):
         assert os.path.isfile(os.path.join(invdir, "foo.log"))
 
         # check that -nodebuglog disables logging
+        self.stop_node(0)
         log_path = self.relative_log_path("debug.log")
         os.unlink(log_path)
         assert not os.path.isfile(log_path)
-        self.stop_node(0)
         self.start_node(0, ["-nodebuglog"])
         assert not os.path.isfile(log_path)
 
