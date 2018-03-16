@@ -196,7 +196,7 @@ fs::path GetDebugLogPath()
 bool ShouldOpenDebugLog()
 {
     // secret "node bug log" option
-    if (gArgs.GetBoolArg("-nodebuglog", false))
+    if (gArgs.IsArgSet("-nodebuglog"))
         fPrintToDebugLog = false;
 
     // special paths that disable debug.log
