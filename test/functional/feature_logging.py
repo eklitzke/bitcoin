@@ -71,7 +71,7 @@ class LoggingTest(BitcoinTestFramework):
         # using -debuglogfile=0 should also disable logging
         self.stop_node(0)
         log_path = self.relative_log_path("0")
-        assert not os.paht.isfile(log_path)
+        assert not os.path.isfile(log_path)
         self.start_node(0, ["-debuglogfile=0"])
         assert not os.path.isfile(log_path)
 
