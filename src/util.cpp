@@ -195,15 +195,12 @@ fs::path GetDebugLogPath()
 
 bool ShouldOpenDebugLog()
 {
-    // secret "node bug log" option
-    if (gArgs.GetBoolArg("-nodebuglog", false))
+    // This takes advantage of a trick in the option parser:
+    //   -nodebuglogfile will disable the log file
+    //   -debuglogfile=0 will also disable the log file
+    if (!gArgs.GetBoolArg("-debuglogfile", true)) {
         fPrintToDebugLog = false;
-
-    // special paths that disable debug.log
-    std::string logfilestr = gArgs.GetArg("-debuglogfile", "");
-    if (logfilestr == "/dev/null" || logfilestr == "0")
-        fPrintToDebugLog = false;
-
+    }
     return fPrintToDebugLog;
 }
 
@@ -439,14 +436,17 @@ static bool InterpretBool(const std::string& strValue)
 {
     if (strValue.empty())
         return true;
-    return (atoi(strValue) != 0);
+    try {
+        return std::stoi(strValue);
+    } catch (const std::invalid_argument &) {
+        return true; // user passed a value but it isn't 0, it must be true
+    }
 }
 
 /** Turn -noX into -X=0 */
 static void InterpretNegativeSetting(std::string& strKey, std::string& strValue)
 {
-    if (strKey.length()>3 && strKey[0]=='-' && strKey[1]=='n' && strKey[2]=='o')
-    {
+    if (strKey.substr(0, 3) == "-no") {
         strKey = "-" + strKey.substr(3);
         strValue = InterpretBool(strValue) ? "0" : "1";
     }

@@ -18,7 +18,8 @@ class LoggingTest(BitcoinTestFramework):
 
     def run_test(self):
         # test default log file name
-        assert os.path.isfile(self.relative_log_path("debug.log"))
+        default_log_path = self.relative_log_path("debug.log")
+        assert os.path.isfile(default_log_path)
 
         # test alternative log file name in datadir
         self.restart_node(0, ["-debuglogfile=foo.log"])
@@ -57,12 +58,12 @@ class LoggingTest(BitcoinTestFramework):
         self.start_node(0, ["-debuglogfile=%s" % (invalidname)])
         assert os.path.isfile(os.path.join(invdir, "foo.log"))
 
-        # check that -nodebuglog disables logging
-        log_path = self.relative_log_path("nosuch.log")
-        assert not os.path.isfile(log_path)
+        # check that -nodebuglogfile disables logging
         self.stop_node(0)
-        self.start_node(0, ["-nodebuglog", "-debuglogfile=nosuch.log"])
-        assert not os.path.isfile(log_path)
+        os.unlink(default_log_path)
+        assert not os.path.isfile(default_log_path)
+        self.start_node(0, ["-nodebuglogfile"])
+        assert not os.path.isfile(default_log_path)
 
         # just sanity check no crash here
         self.stop_node(0)
