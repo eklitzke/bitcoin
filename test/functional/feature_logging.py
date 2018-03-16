@@ -63,7 +63,9 @@ class LoggingTest(BitcoinTestFramework):
         os.unlink(log_path)
         assert not os.path.isfile(log_path)
         self.start_node(0, ["-nodebuglog"])
-        assert not os.path.isfile(log_path)
+        if os.path.isfile(log_path):
+            data = open(log_path).read()
+            assert False, data
 
         # just sanity check no crash here
         self.stop_node(0)
