@@ -199,8 +199,9 @@ bool ShouldOpenDebugLog()
     if (gArgs.GetBoolArg("-nodebuglog", false))
         fPrintToDebugLog = false;
 
-    // boring ways to disable debug.log
-    if (GetDebugLogPath() == fs::path("/dev/null") || GetDebugLogPath() == fs::path("0"))
+    // special paths that disable debug.log
+    std::string logfilestr = gArgs.GetArg("-debuglogfile", "");
+    if (logfilestr == "/dev/null" || logfilestr == "0")
         fPrintToDebugLog = false;
 
     return fPrintToDebugLog;
