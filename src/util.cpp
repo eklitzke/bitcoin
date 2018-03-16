@@ -434,13 +434,7 @@ void ReleaseDirectoryLocks()
 /** Interpret string as boolean, for argument parsing */
 static bool InterpretBool(const std::string& strValue)
 {
-    if (strValue.empty())
-        return true;
-    try {
-        return std::stoi(strValue);
-    } catch (const std::invalid_argument &) {
-        return true; // user passed a value but it isn't 0, it must be true
-    }
+    return strValue != "0";
 }
 
 /** Turn -noX into -X=0 */
