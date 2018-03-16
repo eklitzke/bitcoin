@@ -193,6 +193,7 @@ void CreatePidFile(const fs::path &path, pid_t pid);
 fs::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
 #endif
 fs::path GetDebugLogPath();
+bool ShouldOpenDebugLog();
 bool OpenDebugLog();
 void ShrinkDebugFile();
 void runCommand(const std::string& strCommand);

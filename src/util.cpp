@@ -193,6 +193,19 @@ fs::path GetDebugLogPath()
     return AbsPathForConfigVal(logfile);
 }
 
+bool ShouldOpenDebugLog()
+{
+    // secret "node bug log" option
+    if (gArgs.GetBoolArg("-nodebuglog", false))
+        fPrintToDebugLog = false;
+
+    // boring ways to disable debug.log
+    if (GetDebugLogPath() == fs::path("/dev/null") || GetDebugLogPath() == fs::path("0"))
+        fPrintToDebugLog = false;
+
+    return fPrintToDebugLog;
+}
+
 bool OpenDebugLog()
 {
     boost::call_once(&DebugPrintInit, debugPrintInitFlag);
