@@ -237,12 +237,12 @@ incompatible. The configure script will fail if you try to use an unsupported
 combination of sanitizers.
 
 The test suite should pass cleanly with the `thread` and `undefined` sanitizers,
-but there are a number of known problems in the Bitcoin code when using the
-`address` sanitizer. We would like to fix these, so please send pull requests if
-you can fix any errors found by the address sanitizer. The address sanitizer is
-known to fail in [Bitcoin's SSE4 SHA256
+but there are a number of known problems when using the `address` sanitizer. In
+particular, the address sanitizer is known to fail in [Bitcoin's SSE4 SHA256
 implementation](/src/crypto/sha256_sse4.cpp) which makes it largely unusable
-unless you compile with `--disable-asm`.
+unless you compile with `--disable-asm`. We would like to fix these issues, so
+please send pull requests if you can fix any errors found by the address
+sanitizer (or any other sanitizer).
 
 Additional resources:
 
