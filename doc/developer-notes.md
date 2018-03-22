@@ -246,12 +246,12 @@ compiler.
 
 Additional resources:
 
- * Clang Sanitizer Docs:
-   * [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html)
-   * [LeakSanitizer](https://clang.llvm.org/docs/LeakSanitizer.html)
-   * [MemorySanitizer](https://clang.llvm.org/docs/MemorySanitizer.html)
-   * [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html)
-   * [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
+ * Clang Sanitizer Documentation
+  * [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html)
+  * [LeakSanitizer](https://clang.llvm.org/docs/LeakSanitizer.html)
+  * [MemorySanitizer](https://clang.llvm.org/docs/MemorySanitizer.html)
+  * [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html)
+  * [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
  * [GCC Instrumentation Options](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html)
  * [Google Sanitizers Wiki](https://github.com/google/sanitizers/wiki)
  * [Issue #12691: Enable -fsanitize flags in Travis](https://github.com/bitcoin/bitcoin/issues/12691)
