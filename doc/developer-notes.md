@@ -204,6 +204,55 @@ make cov
 # A coverage report will now be accessible at `./test_bitcoin.coverage/index.html`.
 ```
 
+**Sanitizers**
+
+Bitcoin can be compiled with various "sanitizers" enabled, which add
+instrumentation for issues regarding things like memory safety, thread race
+conditions, or undefined behavior. This is controlled with the
+`--enable-sanitzer` flag, which should be a comma separated list of sanitizers
+to enable. This works in both GCC and Clang, and the arguments should correspond
+to the `-fsanitize=` flags in your compiler.
+
+Some examples:
+
+```bash
+# Enable both the addres sanitizer and the undefined behavior sanitizer
+./configure --enable-sanitizer=address,undefined
+
+# Enable the thread sanitizer
+./configure --enable-sanitizer=thread
+```
+
+If you are compiling with GCC you will typically need to install corresponding
+"san" libraries to actually compile with these flags, e.g. libasan for the
+address sanitizer, libtsan for the thread sanitizer, and libubsan for the
+undefined sanitizer.
+
+These sanitizers can incur significant runtime overhead, so they are most useful
+for debugging or verifying the correctness of new changes.
+
+Not all sanitizer options can be enabled at the same time, e.g.
+`-fsanitize=address,thread` is forbidden as these sanitizers are mutually
+incompatible.
+
+The test suite should pass cleanly with the `thread` and `undefined` sanitizers,
+but there are a number of known problems in the Bitcoin code when using the
+`address` sanitizer. We would like to fix these, send pull requests if you can
+fix any errors found by the address sanitizer. See also
+[#12691](https://github.com/bitcoin/bitcoin/issues/12691) regarding enabling
+these sanitizers in Travis.
+
+The address sanitizer fails in [the SSE4 SHA256
+implementation](/src/crypto/sha256_sse4.cpp), which makes it largely unusable
+unless you compile with `--disable-asm` to disable this code path.
+
+Additional resources:
+
+ * [Google sanitizers wiki](https://github.com/google/sanitizers/wiki)
+ * [Clang Address Sanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
+ * [GCC Undefined Behavior Sanitizer](https://developers.redhat.com/blog/2014/10/16/gcc-undefined-behavior-sanitizer-ubsan/)
+ * [Issue #12691: Enable -fsanitize flags in Travs](https://github.com/bitcoin/bitcoin/issues/12691)
+
 Locking/mutex usage notes
 -------------------------
 
