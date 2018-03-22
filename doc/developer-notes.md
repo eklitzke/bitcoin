@@ -234,9 +234,9 @@ The test suite should pass cleanly with the `thread` and `undefined` sanitizers,
 but there are a number of known problems when using the `address` sanitizer. The
 address sanitizer is known to fail in
 [sha256_sse4::Transform](/src/crypto/sha256_sse4.cpp) which makes it unusable
-unless you compile with `--disable-asm`. We would like to fix sanitizer issues,
-so please send pull requests if you can fix any errors found by the address
-sanitizer (or any other sanitizer).
+unless you also use `--disable-asm` when running configure. We would like to fix
+sanitizer issues, so please send pull requests if you can fix any errors found
+by the address sanitizer (or any other sanitizer).
 
 Not all sanitizer options can be enabled at the same time, e.g. trying to build
 with `--enable-sanitizer=address,thread` will fail in the configure script as
