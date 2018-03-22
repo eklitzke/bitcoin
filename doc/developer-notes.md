@@ -240,15 +240,19 @@ by the address sanitizer (or any other sanitizer).
 
 Not all sanitizer options can be enabled at the same time, e.g. trying to build
 with `--enable-sanitizer=address,thread` will fail in the configure script as
-these sanitizers are mutually incompatible.
-
-Refer to your compiler manual to learn more about these options and which
-sanitizers are supported by your compiler.
+these sanitizers are mutually incompatible. Refer to your compiler manual to
+learn more about these options and which sanitizers are supported by your
+compiler.
 
 Additional resources:
 
- * [Google sanitizers wiki](https://github.com/google/sanitizers/wiki)
- * [Clang Address Sanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
+ * LLVM Sanitizer docs:
+   * [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html)
+   * [MemorySanitizer](https://clang.llvm.org/docs/MemorySanitizer.html)
+   * [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
+   * [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html)
+   * [LeakSanitizer](https://clang.llvm.org/docs/LeakSanitizer.html)
+ * [Google Sanitizers Wiki](https://github.com/google/sanitizers/wiki)
  * [Address and Thread Sanitizers in GCC](https://developers.redhat.com/blog/2014/12/02/address-and-thread-sanitizers-gcc/)
  * [GCC Undefined Behavior Sanitizer](https://developers.redhat.com/blog/2014/10/16/gcc-undefined-behavior-sanitizer-ubsan/)
  * [Issue #12691: Enable -fsanitize flags in Travis](https://github.com/bitcoin/bitcoin/issues/12691)
