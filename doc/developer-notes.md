@@ -246,15 +246,14 @@ compiler.
 
 Additional resources:
 
- * LLVM docs (most of these also work in GCC):
+ * Clang Sanitizer Docs:
    * [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html)
    * [LeakSanitizer](https://clang.llvm.org/docs/LeakSanitizer.html)
    * [MemorySanitizer](https://clang.llvm.org/docs/MemorySanitizer.html)
    * [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html)
    * [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
+ * [GCC Instrumentation Options](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html)
  * [Google Sanitizers Wiki](https://github.com/google/sanitizers/wiki)
- * [Address and Thread Sanitizers in GCC](https://developers.redhat.com/blog/2014/12/02/address-and-thread-sanitizers-gcc/)
- * [GCC Undefined Behavior Sanitizer](https://developers.redhat.com/blog/2014/10/16/gcc-undefined-behavior-sanitizer-ubsan/)
  * [Issue #12691: Enable -fsanitize flags in Travis](https://github.com/bitcoin/bitcoin/issues/12691)
 
 Locking/mutex usage notes
