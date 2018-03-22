@@ -209,11 +209,11 @@ make cov
 Bitcoin can be compiled with various "sanitizers" enabled, which add
 instrumentation for issues regarding things like memory safety, thread race
 conditions, or undefined behavior. This is controlled with the
-`--enable-sanitzer` flag, which should be a comma separated list of sanitizers
-to enable. This works in both GCC and Clang, and the arguments should correspond
-to the `-fsanitize=` flags in your compiler. These sanitizers can incur
-significant runtime overhead, so they are most useful for debugging or verifying
-the correctness of new changes.
+`--enable-sanitzer` configure flag, which should be a comma separated list of
+sanitizers to enable. The sanitizer list should correspond to supported
+`-fsanitize=` options in your compiler. These sanitizers can incur significant
+runtime overhead, so they are most useful for debugging or verifying the
+correctness of new changes.
 
 Some examples:
 
@@ -231,11 +231,6 @@ address sanitizer, libtsan for the thread sanitizer, and libubsan for the
 undefined sanitizer. If you are missing required libraries, the configure script
 will fail with a linker error when testing the sanitizer flags.
 
-Not all sanitizer options can be enabled at the same time, e.g.
-`-fsanitize=address,thread` is forbidden as these sanitizers are mutually
-incompatible. The configure script will fail if you try to use an unsupported
-combination of sanitizers.
-
 The test suite should pass cleanly with the `thread` and `undefined` sanitizers,
 but there are a number of known problems when using the `address` sanitizer. In
 particular, the address sanitizer is known to fail in [Bitcoin's SSE4 SHA256
@@ -243,6 +238,12 @@ implementation](/src/crypto/sha256_sse4.cpp) which makes it largely unusable
 unless you compile with `--disable-asm`. We would like to fix these issues, so
 please send pull requests if you can fix any errors found by the address
 sanitizer (or any other sanitizer).
+
+Not all sanitizer options can be enabled at the same time, e.g.
+`-fsanitize=address,thread` is forbidden as these sanitizers are mutually
+incompatible. The configure script will fail if you try to use an unsupported
+combination of sanitizers. Refer to your compiler manual to learn more about
+which options are incompatible.
 
 Additional resources:
 
