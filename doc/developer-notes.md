@@ -211,9 +211,8 @@ instrumentation for issues regarding things like memory safety, thread race
 conditions, or undefined behavior. This is controlled with the
 `--enable-sanitzer` configure flag, which should be a comma separated list of
 sanitizers to enable. The sanitizer list should correspond to supported
-`-fsanitize=` options in your compiler. These sanitizers can incur significant
-runtime overhead, so they are most useful for debugging or verifying the
-correctness of new changes.
+`-fsanitize=` options in your compiler. These sanitizers have runtime overhead,
+so they are most useful when testing changes or producing debugging builds.
 
 Some examples:
 
@@ -232,11 +231,11 @@ undefined sanitizer. If you are missing required libraries, the configure script
 will fail with a linker error when testing the sanitizer flags.
 
 The test suite should pass cleanly with the `thread` and `undefined` sanitizers,
-but there are a number of known problems when using the `address` sanitizer. In
-particular, the address sanitizer is known to fail in [Bitcoin's SSE4 SHA256
-implementation](/src/crypto/sha256_sse4.cpp) which makes it largely unusable
-unless you compile with `--disable-asm`. We would like to fix these issues, so
-please send pull requests if you can fix any errors found by the address
+but there are a number of known problems when using the `address` sanitizer. The
+address sanitizer is known to fail in
+[sha256_sse4::Transform](/src/crypto/sha256_sse4.cpp) which makes it unusable
+unless you compile with `--disable-asm`. We would like to fix sanitizer issues,
+so please send pull requests if you can fix any errors found by the address
 sanitizer (or any other sanitizer).
 
 Not all sanitizer options can be enabled at the same time, e.g. trying to build
