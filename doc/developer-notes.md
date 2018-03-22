@@ -218,7 +218,7 @@ correctness of new changes.
 Some examples:
 
 ```bash
-# Enable both the addres sanitizer and the undefined behavior sanitizer
+# Enable both the address sanitizer and the undefined behavior sanitizer
 ./configure --enable-sanitizer=address,undefined
 
 # Enable the thread sanitizer
@@ -239,11 +239,12 @@ unless you compile with `--disable-asm`. We would like to fix these issues, so
 please send pull requests if you can fix any errors found by the address
 sanitizer (or any other sanitizer).
 
-Not all sanitizer options can be enabled at the same time, e.g.
-`-fsanitize=address,thread` is forbidden as these sanitizers are mutually
-incompatible. The configure script will fail if you try to use an unsupported
-combination of sanitizers. Refer to your compiler manual to learn more about
-which options are incompatible.
+Not all sanitizer options can be enabled at the same time, e.g. trying to build
+with `--enable-sanitizer=address,thread` will fail in the configure script as
+these sanitizers are mutually incompatible.
+
+Refer to your compiler manual to learn more about these options and which
+sanitizers are supported by your compiler.
 
 Additional resources:
 
