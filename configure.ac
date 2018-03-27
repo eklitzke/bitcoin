@@ -1342,6 +1342,13 @@ case ${OS} in
    ;;
 esac
 
+# Print a list of flags and strip any extra whitespace in the options.
+showflags() {
+  printf "  %-14s= " "$1"
+  shift
+  echo $*
+}
+
 echo
 echo "Options used to compile and link:"
 echo "  with wallet   = $enable_wallet"
@@ -1362,11 +1369,11 @@ echo
 echo "  target os     = $TARGET_OS"
 echo "  build os      = $BUILD_OS"
 echo
-echo "  CC            = $CC"
-echo "  CFLAGS        = $CFLAGS"
-echo "  CPPFLAGS      = $DEBUG_CPPFLAGS $HARDENED_CPPFLAGS $CPPFLAGS"
-echo "  CXX           = $CXX"
-echo "  CXXFLAGS      = $DEBUG_CXXFLAGS $HARDENED_CXXFLAGS $ERROR_CXXFLAGS $GPROF_CXXFLAGS $CXXFLAGS"
-echo "  LDFLAGS       = $PTHREAD_CFLAGS $HARDENED_LDFLAGS $GPROF_LDFLAGS $LDFLAGS"
-echo "  ARFLAGS       = $ARFLAGS"
+showflags CC $CC
+showflags CFLAGS $CFLAGS
+showflags CPPFLAGS $DEBUG_CPPFLAGS $HARDENED_CPPFLAGS $CPPFLAGS
+showflags CXX $CXX
+showflags CXXFLAGS $DEBUG_CXXFLAGS $HARDENED_CXXFLAGS $ERROR_CXXFLAGS $GPROF_CXXFLAGS $CXXFLAGS
+showflags LDFLAGS $PTHREAD_CFLAGS $HARDENED_LDFLAGS $GPROF_LDFLAGS $LDFLAGS
+showflags ARFLAGS $ARFLAGS
 echo
